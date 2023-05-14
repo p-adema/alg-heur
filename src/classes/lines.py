@@ -22,7 +22,9 @@ class TrainLineExtension:
 
     def __lt__(self, other: TrainLineExtension | Any):
         try:
-            return self.new < other.new or self.duration > other.duration
+            if self.new != other.new:
+                return self.new < other.new
+            return self.duration > other.duration
         except AttributeError:
             return NotImplemented
 
