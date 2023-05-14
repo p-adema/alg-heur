@@ -2,7 +2,7 @@ import numpy as np
 from functools import partial
 import matplotlib.pyplot as plt
 
-from src.algorithms import random_greedy
+from src.main import run_alg
 from src.classes import rails, lines
 
 sample_size = 10_000
@@ -12,7 +12,7 @@ infra = rails.Rails()
 infra.load('data/positions_small.csv', 'data/connections_small.csv')
 for max_rails in [4, 5, 6, 7]:
     print('Calculating', max_rails, 'rails')
-    rg = partial(random_greedy.random_greedy, infra, max_rails)
+    rg = partial(run_alg, infra, max_rails)
     sampler = np.vectorize(lambda _: rg().quality())
 
     data = sampler(np.empty(sample_size))
