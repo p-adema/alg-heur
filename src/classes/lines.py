@@ -66,7 +66,8 @@ class TrainLine:
         return False
 
     def _extend_front(self, station: Station, is_new: bool):
-        self.duration += self._rails[self.front][station]
+        ex_duration = self._rails[self.front][station]
+        self.duration += ex_duration
         if is_new:
             try:
                 self._network.unlinked.remove((self.front, station))
@@ -74,11 +75,12 @@ class TrainLine:
             except KeyError:
                 print("Warning: invalid is_new value passed to TrainLine.extend")
         else:
-            self._network.overlap += 1
+            self._network.overtime += ex_duration
         self.stations.append(station)
 
     def _extend_back(self, station: Station, is_new: bool):
-        self.duration += self._rails[self.back][station]
+        ex_duration = self._rails[self.back][station]
+        self.duration += ex_duration
         if is_new:
             try:
                 self._network.unlinked.remove((station, self.back))
@@ -86,7 +88,7 @@ class TrainLine:
             except KeyError:
                 print("Warning: invalid is_new value passed to TrainLine.extend")
         else:
-            self._network.overlap += 1
+            self._network.overtime += ex_duration
         self.stations.appendleft(station)
 
     def _gen_extensions(self, origin: Station, back: Station = None) \
@@ -99,7 +101,7 @@ class TrainLine:
                     (origin, extension) in self._network.unlinked,
                     d_duration, self, origin, extension, validity)
 
-    def legal_extensions(self) -> list[TrainLineExtension]:
+    def extensions(self) -> list[TrainLineExtension]:
         if len(self.stations) == 1:
             return sorted(
                 self._gen_extensions(self.front)
@@ -126,7 +128,7 @@ class Network:
             for stn_b in stn_conn
         }
         self.total_links = len(self.unlinked) / 2
-        self.overlap = 0
+        self.overtime = 0
         self._max_line_duration = max_line_duration
 
     def add_line(self, root: Station) -> TrainLine:
@@ -134,8 +136,17 @@ class Network:
         self.lines.append(tl)
         return tl
 
+    def extensions(self) -> list[TrainLineExtension]:
+        return sorted(itertools.chain.from_iterable(
+            line.extensions() for line in self.lines
+        ))
+
+
     def coverage(self):
         return 1 - (len(self.unlinked) / (self.total_links * 2))
+
+    def fully_covered(self):
+        return not self.unlinked
 
     def total_duration(self) -> int:
         return sum(line.duration for line in self.lines)
