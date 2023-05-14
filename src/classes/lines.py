@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import dataclasses
 from collections import deque
-from typing import Callable, NamedTuple, Generator
+from typing import Callable, Generator, Any
 from functools import partial
 from dataclasses import dataclass
 import itertools
@@ -14,7 +14,8 @@ class _ExtensionValidity:
     valid: bool = True
 
 
-class TrainLineExtension(NamedTuple):
+@dataclass(slots=True, frozen=True)
+class TrainLineExtension:
     new: bool
     duration: int
     line: TrainLine
@@ -28,6 +29,11 @@ class TrainLineExtension(NamedTuple):
             return self.line.extend(self.origin, self.destination, self.new)
         print("Warning: double commit attempted (invalid extension)")
         return False
+
+    def __lt__(self, other: TrainLineExtension | Any):
+        if not isinstance(other, TrainLineExtension):
+            return NotImplemented
+        return self.new < other.new or self.duration > other.duration
 
 
 class TrainLine:
@@ -83,7 +89,7 @@ class TrainLine:
             self._network.overlap += 1
         self.stations.appendleft(station)
 
-    def _gen_extensions(self, origin: Station, back: Station = None)\
+    def _gen_extensions(self, origin: Station, back: Station = None) \
             -> Generator[TrainLineExtension, None, None]:
         remaining_duration = self.max_duration - self.duration
         validity = _ExtensionValidity()
@@ -136,3 +142,10 @@ class Network:
 
     def quality(self) -> float:
         return self.coverage() * 10_000 - (len(self.lines) * 100 + self.total_duration())
+
+
+if __name__ == '__main__':
+    r = Rails()
+    r.load('data/positions_small.csv', 'data/connections_small.csv')
+    n = Network(r)
+    line0 = n.add_line(r.stations[0])

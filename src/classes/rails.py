@@ -52,3 +52,8 @@ class Rails:
     def __repr__(self) -> str:
         """ Return a short string summary of the network """
         return f'Rails({len(self.stations)} stations)'
+
+
+if __name__ == '__main__':
+    r = Rails()
+    r.load('data/positions_small.csv', 'data/connections_small.csv')
