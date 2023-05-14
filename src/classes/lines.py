@@ -9,11 +9,6 @@ import itertools
 from src.classes.rails import Station, Rails
 
 
-@dataclass(slots=True)
-class _ExtensionValidity:
-    valid: bool = True
-
-
 @dataclass(slots=True, frozen=True)
 class TrainLineExtension:
     new: bool
@@ -21,19 +16,15 @@ class TrainLineExtension:
     line: TrainLine
     origin: Station
     destination: Station
-    validity: _ExtensionValidity = dataclasses.field(default_factory=_ExtensionValidity)
 
     def commit(self) -> bool:
-        if self.validity.valid:
-            self.validity.valid = False
-            return self.line.extend(self.origin, self.destination, self.new)
-        print("Warning: double commit attempted (invalid extension)")
-        return False
+        return self.line.extend(self.origin, self.destination, self.new)
 
     def __lt__(self, other: TrainLineExtension | Any):
-        if not isinstance(other, TrainLineExtension):
+        try:
+            return self.new < other.new or self.duration > other.duration
+        except AttributeError:
             return NotImplemented
-        return self.new < other.new or self.duration > other.duration
 
 
 class TrainLine:
@@ -44,78 +35,56 @@ class TrainLine:
         self.duration = 0
         self.max_duration = max_duration
 
-    @property
-    def front(self):
-        return self.stations[-1]
-
-    @property
-    def back(self):
-        return self.stations[0]
-
     def extend(self, origin: Station, destination: Station, is_new: bool = None) -> bool:
         if is_new is None:
             is_new = (origin, destination) in self._network.unlinked
-
-        if origin is self.front:
-            self._extend_front(destination, is_new)
-            return True
-        elif origin is self.back:
-            self._extend_back(destination, is_new)
-            return True
-        print(f'Warning: Disconnected train line extension attempted from {origin.name} to {destination.name}')
-        return False
-
-    def _extend_front(self, station: Station, is_new: bool):
-        ex_duration = self._rails[self.front][station]
-        self.duration += ex_duration
+        if origin is not self.stations[-1] and origin is not self.stations[0]:
+            print(f'Warning: Disconnected train line extension attempted from {origin.name} to {destination.name}')
+            return False
+        try:
+            ex_duration = self._rails[origin][destination]
+        except KeyError:
+            print("Warning: there is no rail between origin and destination")
+            return False
         if is_new:
             try:
-                self._network.unlinked.remove((self.front, station))
-                self._network.unlinked.remove((station, self.front))
+                self._network.unlinked.remove((origin, destination))
+                self._network.unlinked.remove((destination, origin))
             except KeyError:
                 print("Warning: invalid is_new value passed to TrainLine.extend")
+                return False
         else:
             self._network.overtime += ex_duration
-        self.stations.append(station)
-
-    def _extend_back(self, station: Station, is_new: bool):
-        ex_duration = self._rails[self.back][station]
         self.duration += ex_duration
-        if is_new:
-            try:
-                self._network.unlinked.remove((station, self.back))
-                self._network.unlinked.remove((self.back, station))
-            except KeyError:
-                print("Warning: invalid is_new value passed to TrainLine.extend")
-        else:
-            self._network.overtime += ex_duration
-        self.stations.appendleft(station)
+        self.stations.append(destination)
 
     def _gen_extensions(self, origin: Station, back: Station = None) \
             -> Generator[TrainLineExtension, None, None]:
         remaining_duration = self.max_duration - self.duration
-        validity = _ExtensionValidity()
         for extension, d_duration in self._rails[origin].items():
             if d_duration <= remaining_duration and extension is not back:
                 yield TrainLineExtension(
                     (origin, extension) in self._network.unlinked,
-                    d_duration, self, origin, extension, validity)
+                    d_duration, self, origin, extension)
 
     def extensions(self) -> list[TrainLineExtension]:
         if len(self.stations) == 1:
-            return sorted(
-                self._gen_extensions(self.front)
+            return list(
+                self._gen_extensions(self.stations[-1])
             )
-        elif self.front is self.back:
+        elif self.stations[-1] is self.stations[0]:
             return []
 
-        return sorted(itertools.chain(
-            self._gen_extensions(self.front, self.stations[-2]),
-            self._gen_extensions(self.back, self.stations[1])
+        return list(itertools.chain(
+            self._gen_extensions(self.stations[-1], self.stations[-2]),
+            self._gen_extensions(self.stations[0], self.stations[1])
         ))
 
     def __repr__(self) -> str:
         return f'TrainLine({len(self.stations)} station(s), {self.duration} min)'
+
+    def output(self) -> str:
+        return '"[' + ', '.join(station.name for station in self.stations) + ']"'
 
 
 class Network:
@@ -137,10 +106,9 @@ class Network:
         return tl
 
     def extensions(self) -> list[TrainLineExtension]:
-        return sorted(itertools.chain.from_iterable(
+        return list(itertools.chain.from_iterable(
             line.extensions() for line in self.lines
         ))
-
 
     def coverage(self):
         return 1 - (len(self.unlinked) / (self.total_links * 2))
@@ -153,6 +121,19 @@ class Network:
 
     def quality(self) -> float:
         return self.coverage() * 10_000 - (len(self.lines) * 100 + self.total_duration())
+
+    def __repr__(self) -> str:
+        return f'Network({len(self.lines)} line(s), {self.coverage():.1%} coverage)'
+
+    def __lt__(self, other: Network):
+        try:
+            return self.quality() < other.quality()
+        except AttributeError:
+            return NotImplemented
+
+    def output(self) -> str:
+        line_outputs = [f'train_{i},{line.output()}\n' for i, line in enumerate(self.lines)]
+        return 'train,stations\n' + ''.join(line_outputs) + f'score,{self.quality()}'
 
 
 if __name__ == '__main__':

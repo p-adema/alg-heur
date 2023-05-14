@@ -19,7 +19,7 @@ def extensions(infra: rails.Rails, net: lines.Network, max_lines: int = 7) \
             line_count += 1
             continue
 
-        choice = ext[-1]
+        choice = max(ext)
         if choice.new or random.random() < line_count / max_lines:
             yield choice
         else:
@@ -27,10 +27,13 @@ def extensions(infra: rails.Rails, net: lines.Network, max_lines: int = 7) \
             line_count += 1
 
 
-def random_greedy(file_pos: str, file_conn: str,
+def random_greedy(infra: rails.Rails | tuple[str, str],
                   max_lines=7) -> lines.Network:
-    infra = rails.Rails()
-    infra.load(file_pos, file_conn)
+    if not isinstance(infra, rails.Rails):
+        loc, conn = infra
+        infra = rails.Rails()
+        infra.load(loc, conn)
+
     net = lines.Network(infra)
     ext = extensions(infra, net, max_lines)
 
@@ -40,20 +43,21 @@ def random_greedy(file_pos: str, file_conn: str,
     return net
 
 
-def rg_quality(file_pos: str, file_conn: str, max_lines: int,
-               require_connected: bool = True) -> tuple[float, lines.Network]:
-    sol = random_greedy(file_pos, file_conn, max_lines)
-    while require_connected and not sol.fully_covered():
-        sol = random_greedy(file_pos, file_conn, max_lines)
+def rg_full_cover(infra: rails.Rails | tuple[str, str], max_lines: int) -> lines.Network:
+    sol = random_greedy(infra, max_lines)
+    while not sol.fully_covered():
+        sol = random_greedy(infra, max_lines)
 
-    return sol.quality(), sol
+    return sol
 
 
 def best(fun: Callable, *args, iterations: int = 1000) -> float:
-    return max((fun(*args) for _ in range(iterations)), key=lambda t: t[0])
+    return max((fun(*args) for _ in range(iterations)))
 
 
 if __name__ == '__main__':
     from functools import partial
-
-    q = partial(rg_quality, 'data/positions_small.csv', 'data/connections_small.csv')
+    infrastructure = rails.Rails()
+    infrastructure.load('data/positions_small.csv', 'data/connections_small.csv')
+    q = partial(rg_full_cover, infrastructure)
+    score, solution = best(q, 7, iterations=50)

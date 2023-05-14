@@ -1,19 +1,19 @@
 import numpy as np
 from functools import partial
-from scipy.optimize import curve_fit
 import matplotlib.pyplot as plt
 
 from src.algorithms import random_greedy
+from src.classes import rails, lines
 
 sample_size = 5_000
 ax = plt.subplot()
 bins = None
+infra = rails.Rails()
+infra.load('data/positions_small.csv', 'data/connections_small.csv')
 for max_rails in [4, 5, 6, 7]:
     print('Calculating', max_rails, 'rails')
-    func = partial(random_greedy.rg_quality, 'data/positions_small.csv',
-                   'data/connections_small.csv', max_rails, False)
-    sampler = np.vectorize(
-        lambda _: func()[0])
+    rg = partial(random_greedy.rg_full_cover, infra, max_rails)
+    sampler = np.vectorize(lambda _: rg().quality())
 
     data = sampler(np.empty(sample_size))
     data.sort()
