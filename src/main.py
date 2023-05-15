@@ -8,15 +8,14 @@ from src.classes import rails, lines
 alg = random_greedy.gen_extensions
 
 
-def run_alg(infra: rails.Rails | tuple[str, str],
-            max_lines: int = 7) -> lines.Network:
+def run_alg(infra: rails.Rails | tuple[str, str], **kwargs) -> lines.Network:
     if not isinstance(infra, rails.Rails):
         loc, conn = infra
         infra = rails.Rails()
         infra.load(loc, conn)
 
     net = lines.Network(infra)
-    ext = alg(infra, net, max_lines)
+    ext = alg(infra, net, **kwargs)
 
     while not net.fully_covered() and (choice := next(ext, None)):
         choice.commit()
@@ -25,23 +24,30 @@ def run_alg(infra: rails.Rails | tuple[str, str],
 
 
 def run_till_cover(infra: rails.Rails | tuple[str, str], max_lines: int = 7) -> lines.Network:
-    sol = run_alg(infra, max_lines)
+    sol = run_alg(infra, max_lines=max_lines)
     while not sol.fully_covered():
-        sol = run_alg(infra, max_lines)
+        sol = run_alg(infra, max_lines=max_lines)
 
     return sol
 
 
 def run_till_optimal(infra: rails.Rails | tuple[str, str], max_lines: int = 7) -> lines.Network:
-    sol = run_till_cover(infra, max_lines)
-    while sol.overtime:
-        sol = run_till_cover(infra, max_lines)
+    sol = run_alg(infra, max_lines=max_lines, optimal=True)
+    while sol.overtime or not sol.fully_covered():
+        sol = run_alg(infra, max_lines=max_lines, optimal=True)
 
     return sol
 
 
-def best(fun: Callable, *args, iterations: int = 1000):
-    return max((fun(*args) for _ in range(iterations)))
+def best(infra: rails.Rails | tuple[str, str], max_lines: int = 7,
+         bound: int = 1000) -> lines.Network:
+    sol = run_alg(infra, max_lines=max_lines)
+    iterations = 1
+    while (sol.overtime or not sol.fully_covered()) and iterations < bound:
+        sol = max(sol, run_alg(infra, max_lines=max_lines))
+        iterations += 1
+
+    return sol
 
 
 if __name__ == '__main__':

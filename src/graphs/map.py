@@ -30,10 +30,12 @@ def draw_network(ax: plt.Axes, net: lines.Network):
 
 
 if __name__ == '__main__':
+    plt.rcParams['figure.dpi'] = 300
     infrastructure = rails.Rails()
-    infrastructure.load('data/positions_small.csv', 'data/connections_small.csv')
-    network = main.run_till_optimal(infrastructure, max_lines=5)
+    infrastructure.load('data/positions.csv', 'data/connections.csv')
+    network = main.best(infrastructure, max_lines=20, bound=10_000)
     axes = plt.subplot()
     draw_infra(axes, infrastructure)
     draw_network(axes, network)
     plt.show()
+    print(network.output())
