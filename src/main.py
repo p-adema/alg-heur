@@ -9,7 +9,7 @@ alg = random_greedy.gen_extensions
 
 
 def run_alg(infra: rails.Rails | tuple[str, str],
-            max_lines=7) -> lines.Network:
+            max_lines: int = 7) -> lines.Network:
     if not isinstance(infra, rails.Rails):
         loc, conn = infra
         infra = rails.Rails()
@@ -24,7 +24,7 @@ def run_alg(infra: rails.Rails | tuple[str, str],
     return net
 
 
-def run_till_cover(infra: rails.Rails | tuple[str, str], max_lines: int) -> lines.Network:
+def run_till_cover(infra: rails.Rails | tuple[str, str], max_lines: int = 7) -> lines.Network:
     sol = run_alg(infra, max_lines)
     while not sol.fully_covered():
         sol = run_alg(infra, max_lines)
@@ -32,7 +32,15 @@ def run_till_cover(infra: rails.Rails | tuple[str, str], max_lines: int) -> line
     return sol
 
 
-def best(fun: Callable, *args, iterations: int = 1000) -> float:
+def run_till_optimal(infra: rails.Rails | tuple[str, str], max_lines: int = 7) -> lines.Network:
+    sol = run_till_cover(infra, max_lines)
+    while sol.overtime:
+        sol = run_till_cover(infra, max_lines)
+
+    return sol
+
+
+def best(fun: Callable, *args, iterations: int = 1000):
     return max((fun(*args) for _ in range(iterations)))
 
 

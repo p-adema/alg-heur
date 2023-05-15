@@ -40,7 +40,9 @@ class TrainLine:
     def extend(self, origin: Station, destination: Station, is_new: bool = None) -> bool:
         if is_new is None:
             is_new = (origin, destination) in self._network.unlinked
-        if origin is not self.stations[-1] and origin is not self.stations[0]:
+        is_end = origin is self.stations[-1]
+        is_beginning = origin is self.stations[0]
+        if not is_end and not is_beginning:
             print(f'Warning: Disconnected train line extension attempted from {origin.name} to {destination.name}')
             return False
         try:
@@ -58,7 +60,10 @@ class TrainLine:
         else:
             self._network.overtime += ex_duration
         self.duration += ex_duration
-        self.stations.append(destination)
+        if is_end:
+            self.stations.append(destination)
+        else:
+            self.stations.appendleft(destination)
 
     def _gen_extensions(self, origin: Station, back: Station = None) \
             -> Generator[TrainLineExtension, None, None]:
