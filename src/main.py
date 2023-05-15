@@ -1,50 +1,47 @@
 from __future__ import annotations
 
-from typing import Callable
-
-from src.algorithms import random_greedy
+from src.algorithms import best_first
 from src.classes import rails, lines
 
-alg = random_greedy.gen_extensions
+alg = best_first.gen_extensions
 
 
-def run_alg(infra: rails.Rails | tuple[str, str], **kwargs) -> lines.Network:
+def run_alg(infra: rails.Rails | tuple[str, str], max_line_duration: int, **kwargs) -> lines.Network:
     if not isinstance(infra, rails.Rails):
         loc, conn = infra
         infra = rails.Rails()
         infra.load(loc, conn)
 
-    net = lines.Network(infra)
-    ext = alg(infra, net, **kwargs)
+    net = lines.Network(infra, max_line_duration)
+    gen = alg(infra, net, **kwargs)
 
-    while not net.fully_covered() and (choice := next(ext, None)):
+    while not net.fully_covered() and (choice := next(gen, None)):
         choice.commit()
 
     return net
 
 
-def run_till_cover(infra: rails.Rails | tuple[str, str], max_lines: int = 7) -> lines.Network:
-    sol = run_alg(infra, max_lines=max_lines)
+def run_till_cover(infra: rails.Rails | tuple[str, str], **kwargs) -> lines.Network:
+    sol = run_alg(infra, **kwargs)
     while not sol.fully_covered():
-        sol = run_alg(infra, max_lines=max_lines)
+        sol = run_alg(infra, **kwargs)
 
     return sol
 
 
-def run_till_optimal(infra: rails.Rails | tuple[str, str], max_lines: int = 7) -> lines.Network:
-    sol = run_alg(infra, max_lines=max_lines, optimal=True)
+def run_till_optimal(infra: rails.Rails | tuple[str, str], **kwargs) -> lines.Network:
+    sol = run_alg(infra, **kwargs)
     while sol.overtime or not sol.fully_covered():
-        sol = run_alg(infra, max_lines=max_lines, optimal=True)
+        sol = run_alg(infra, **kwargs)
 
     return sol
 
 
-def best(infra: rails.Rails | tuple[str, str], max_lines: int = 7,
-         bound: int = 1000) -> lines.Network:
-    sol = run_alg(infra, max_lines=max_lines)
+def best(infra: rails.Rails | tuple[str, str], bound: int = 1_000, **kwargs) -> lines.Network:
+    sol = run_alg(infra, **kwargs)
     iterations = 1
     while (sol.overtime or not sol.fully_covered()) and iterations < bound:
-        sol = max(sol, run_alg(infra, max_lines=max_lines))
+        sol = max(sol, run_alg(infra, **kwargs))
         iterations += 1
 
     return sol
@@ -52,7 +49,10 @@ def best(infra: rails.Rails | tuple[str, str], max_lines: int = 7,
 
 if __name__ == '__main__':
     infrastructure = rails.Rails()
-    infrastructure.load('data/positions_small.csv', 'data/connections_small.csv')
-    solution = best(infrastructure, 4, bound=50_000)
-    print(f'Best score found: (overlap {solution.overtime})\n')
-    print(solution.output())
+    infrastructure.load('data/positions.csv', 'data/connections.csv')
+    solution = lines.Network(infrastructure)
+
+    solution = max(solution, best(infrastructure, max_lines=19,
+                                  max_line_duration=180, bound=1_000, temperature=0))
+    print(f'Best score found: (overlap {solution.overtime}, {len(solution.lines)} lines)\n')
+    print(solution.to_output())

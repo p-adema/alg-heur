@@ -20,6 +20,7 @@ class Rails:
         self.stations: tuple[Station, ...] = ()
         self.connections: dict[Station, dict[Station, int]] = {}
         self.names: dict[str, Station] = {}
+        self.links = 0
 
     def load(self, positions_filename: str, connections_filename: str):
         """
@@ -28,20 +29,21 @@ class Rails:
         :param connections_filename: Filename for the connections between stations
         """
         stations = []
-        with open(positions_filename, 'r') as positions_file:
+        with open(positions_filename, 'r', encoding='utf-8') as positions_file:
             positions_file.readline()
-            for name, N, E in (line.strip().split(',') for line in positions_file):
-                station = Station(name, float(N), float(E))
+            for name, n_coord, e_coord in (line.strip().split(',') for line in positions_file):
+                station = Station(name, float(n_coord), float(e_coord))
                 stations.append(station)
                 self.names[name] = station
 
         self.connections = {station: {} for station in stations}
-        with open(connections_filename, 'r') as connections_file:
+        with open(connections_filename, 'r', encoding='utf-8') as connections_file:
             connections_file.readline()
             for name_a, name_b, time_str in (line.strip().split(',') for line in connections_file):
-                station_a, station_b, time = self.names[name_a], self.names[name_b], int(time_str)
-                self.connections[station_a][station_b] = time
-                self.connections[station_b][station_a] = time
+                station_a, station_b = self.names[name_a], self.names[name_b]
+                self.connections[station_a][station_b] = int(time_str)
+                self.connections[station_b][station_a] = int(time_str)
+                self.links += 1
 
         self.stations = tuple(stations)
 
