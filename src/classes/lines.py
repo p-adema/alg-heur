@@ -142,6 +142,17 @@ class Network:
         line_outputs = [f'train_{i},{line.output()}\n' for i, line in enumerate(self.lines)]
         return 'train,stations\n' + ''.join(line_outputs) + f'score,{self.quality()}'
 
+    @classmethod
+    def from_output(cls, infra: Rails, out: str) -> Network:
+        lines = (line.split('"')[1][1:-1].split(', ') for line in out.split('\n')[1:-1])
+        net = cls(infra)
+        for out_line in lines:
+            net_line = net.add_line(infra.names[out_line[0]])
+            for s_a, s_b in itertools.pairwise(out_line):
+                net_line.extend(infra.names[s_a], infra.names[s_b])
+
+        return net
+
 
 if __name__ == '__main__':
     r = Rails()

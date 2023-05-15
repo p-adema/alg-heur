@@ -51,11 +51,8 @@ def best(infra: rails.Rails | tuple[str, str], max_lines: int = 7,
 
 
 if __name__ == '__main__':
-    from functools import partial
-
     infrastructure = rails.Rails()
     infrastructure.load('data/positions_small.csv', 'data/connections_small.csv')
-    q = partial(run_till_cover, infrastructure)
-    solution = best(q, 7, iterations=5000)
+    solution = best(infrastructure, 4, bound=50_000)
     print(f'Best score found: (overlap {solution.overtime})\n')
     print(solution.output())
