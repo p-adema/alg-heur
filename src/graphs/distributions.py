@@ -1,3 +1,5 @@
+""" Cumulative graph of score distributions """
+
 from functools import partial
 from typing import Callable
 

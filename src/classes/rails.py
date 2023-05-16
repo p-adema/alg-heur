@@ -1,3 +1,5 @@
+""" Classes representing rail infrastructure """
+
 from __future__ import annotations
 
 from typing import NamedTuple
@@ -11,7 +13,7 @@ class Station(NamedTuple):
 
     def __repr__(self):
         """ Returns a short representation of the station """
-        return f"Station('{self.name}', {len(self.connections)} link{'' if len(self.connections) == 1 else 's'})"
+        return f"Station('{self.name}')"
 
 
 class Rails:
@@ -56,8 +58,3 @@ class Rails:
     def __repr__(self) -> str:
         """ Return a short string summary of the network """
         return f'Rails({len(self.stations)} stations)'
-
-
-if __name__ == '__main__':
-    r = Rails()
-    r.load('data/positions_small.csv', 'data/connections_small.csv')

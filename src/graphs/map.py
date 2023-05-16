@@ -1,3 +1,5 @@
+""" Functions to draw maps of infrastructure and networks """
+
 from __future__ import annotations
 
 import itertools
@@ -9,6 +11,7 @@ from src.classes import rails, lines
 
 
 def draw_infra(axes: plt.Axes, infra: rails.Rails):
+    """ Draw the rail infrastructure on the given axes """
     for station in infra.stations:
         axes.scatter(station.E, station.N, color='black', marker='+')
         axes.annotate(station.name, (station.E, station.N), fontsize=7)
@@ -22,6 +25,7 @@ LINE_COLOURS = ['blue', 'orange', 'green', 'purple', 'brown', 'pink', 'olive', '
 
 
 def draw_network(axes: plt.Axes, net: lines.Network):
+    """ Draw a network on the given axes """
     for line, colour in zip(net.lines, itertools.cycle(LINE_COLOURS)):
         for s_a, s_b in itertools.pairwise(line.stations):
             axes.plot((s_a.E, s_b.E), (s_a.N, s_b.N), color=colour)
