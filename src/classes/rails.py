@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from typing import NamedTuple
 
 
@@ -9,7 +11,7 @@ class Station(NamedTuple):
 
     def __repr__(self):
         """ Returns a short representation of the station """
-        return f"Station('{self.name}')"
+        return f"Station('{self.name}', {len(self.connections)} link{'' if len(self.connections) == 1 else 's'})"
 
 
 class Rails:

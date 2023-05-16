@@ -72,8 +72,8 @@ class TrainLine:
             self.stations.appendleft(destination)
         return True
 
-    def _gen_extensions(self, origin: Station, back: Station = None) \
-            -> Generator[TrainLineExtension, None, None]:
+    def gen_extensions(self, origin: Station, back: Station = None) \
+            -> Generator[TrainLineExtension]:
         remaining_duration = self.max_duration - self.duration
         for extension, d_duration in self._rails[origin].items():
             if d_duration <= remaining_duration and extension is not back:
@@ -84,18 +84,18 @@ class TrainLine:
     def extensions(self) -> list[TrainLineExtension]:
         if len(self.stations) == 1:
             return list(
-                self._gen_extensions(self.stations[-1])
+                self.gen_extensions(self.stations[-1])
             )
         if self.stations[-1] is self.stations[0]:
             return []
 
         return list(itertools.chain(
-            self._gen_extensions(self.stations[-1], self.stations[-2]),
-            self._gen_extensions(self.stations[0], self.stations[1])
+            self.gen_extensions(self.stations[-1], self.stations[-2]),
+            self.gen_extensions(self.stations[0], self.stations[1])
         ))
 
     def __repr__(self) -> str:
-        return f'TrainLine({len(self.stations)} station(s), {self.duration} min)'
+        return f"TrainLine({len(self.stations)} station{'' if len(self.stations) == 1 else 's'}, {self.duration} min)"
 
     def output(self) -> str:
         return '"[' + ', '.join(station.name for station in self.stations) + ']"'
@@ -136,7 +136,7 @@ class Network:
         return self.coverage() * 10_000 - (len(self.lines) * 100 + self.total_duration())
 
     def __repr__(self) -> str:
-        return f'Network({len(self.lines)} line(s), {self.coverage():.1%} coverage)'
+        return f"Network({len(self.lines)} line{'' if len(self.lines) == 1 else 's'}, {self.coverage():.1%} coverage)"
 
     def __lt__(self, other: Network | Any):
         try:
@@ -179,7 +179,7 @@ class NetworkState(NamedTuple):
         ), infra)
 
     def __repr__(self) -> str:
-        return f'NetworkState({len(self.lines)} line(s))'
+        return f"NetworkState({len(self.lines)} line{'' if len(self.lines) == 1 else 's'})"
 
     def __eq__(self, other: NetworkState | Any):
         if not isinstance(other, NetworkState):
