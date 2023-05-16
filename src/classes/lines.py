@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import itertools
 from collections import deque
-from typing import Generator, Any, NamedTuple
+from typing import Generator, Any, NamedTuple, Iterator
 
 from src.classes.rails import Station, Rails
 
@@ -121,19 +121,18 @@ class TrainLine:
                     extension in self._network.unlinked[origin],
                     d_duration, self, origin, extension)
 
-    def extensions(self) -> list[TrainLineExtension]:
-        """ Get a list of all valid extensions to the line """
+    def extensions(self) -> Iterator[TrainLineExtension]:
+        """ Get an iterable of all valid extensions to the line """
         if len(self.stations) == 1:
-            return list(
-                self.gen_extensions(self.stations[-1])
-            )
-        if self.stations[-1] is self.stations[0]:
-            return []
+            return self.gen_extensions(self.stations[-1])
 
-        return list(itertools.chain(
+        if self.stations[-1] is self.stations[0]:
+            return iter(())
+
+        return itertools.chain(
             self.gen_extensions(self.stations[-1], self.stations[-2]),
             self.gen_extensions(self.stations[0], self.stations[1])
-        ))
+        )
 
     def __repr__(self) -> str:
         """ Represent the train line in a short format """
@@ -169,11 +168,11 @@ class Network:
         self.lines.append(line)
         return line
 
-    def extensions(self) -> list[TrainLineExtension]:
-        """ Get a list of all possible extensions to all train lines """
-        return list(itertools.chain.from_iterable(
+    def extensions(self) -> Iterator[TrainLineExtension]:
+        """ Get an iterator of all possible extensions to all train lines """
+        return itertools.chain.from_iterable(
             line.extensions() for line in self.lines
-        ))
+        )
 
     def coverage(self):
         """ The fraction of the rails covered """
@@ -193,6 +192,10 @@ class Network:
             Q = coverage * 10_000 - (lines * 100 + total_duration)
         """
         return self.coverage() * 10_000 - (len(self.lines) * 100 + self.total_duration())
+
+    def is_optimal(self) -> bool:
+        """ Whether this network, given a constant rail count, is optimal """
+        return not self.overtime and self.fully_covered()
 
     def __repr__(self) -> str:
         """ Represent the network in a short format """
