@@ -25,6 +25,7 @@ class Rails:
         self.connections: dict[Station, dict[Station, int]] = {}
         self.names: dict[str, Station] = {}
         self.links = 0
+        self.longest = 0
 
     def load(self, positions_filename: str, connections_filename: str):
         """
@@ -48,6 +49,7 @@ class Rails:
                 self.connections[station_a][station_b] = int(time_str)
                 self.connections[station_b][station_a] = int(time_str)
                 self.links += 1
+                self.longest = max(self.longest, int(time_str))
 
         self.stations = tuple(stations)
 

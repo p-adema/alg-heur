@@ -2,27 +2,10 @@
 
 from __future__ import annotations
 
-from src.algorithms import best_first
+from src.algorithms import greedy, hill_climb
 from src.classes import rails, lines
 
-ALG = best_first.gen_extensions
-
-
-def run_alg(infra: rails.Rails | tuple[str, str],
-            max_line_duration: int, **kwargs) -> lines.Network:
-    """ Run the algorithm defined as ALG a single time """
-    if not isinstance(infra, rails.Rails):
-        loc, conn = infra
-        infra = rails.Rails()
-        infra.load(loc, conn)
-
-    net = lines.Network(infra, max_line_duration)
-    gen = ALG(infra, net, **kwargs)
-
-    while not net.fully_covered() and (choice := next(gen, None)):
-        choice.commit()
-
-    return net
+run_alg = hill_climb.run
 
 
 def run_till_cover(infra: rails.Rails | tuple[str, str], **kwargs) -> lines.Network:
@@ -67,7 +50,7 @@ if __name__ == '__main__':
     # print(average(infrastructure, max_lines=20, max_line_duration=180, bound=5_000))
     solution = lines.Network(infrastructure)
 
-    solution = max(solution, best(infrastructure, max_lines=11,
+    solution = max(solution, best(infrastructure, max_lines=17,
                                   max_line_duration=180, bound=1_000))
     print(f'Best score found: (overlap {solution.overtime}, {len(solution.lines)} lines)\n')
     print(solution.to_output())

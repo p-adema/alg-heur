@@ -32,16 +32,16 @@ def draw_network(axes: plt.Axes, net: lines.Network):
     axes.set_title(f'Score: {net.quality():.0f}    '
                    f'Coverage: {net.coverage():.0%}'
                    f'    Over-time: {net.overtime}')
-    for s_a, unlinked in net.unlinked.items():
-        for s_b in unlinked:
+    for s_a, unlinked in net.link_count.items():
+        for s_b in (station for station, links in unlinked.items() if not links):
             axes.plot((s_a.E, s_b.E), (s_a.N, s_b.N), color='red', linestyle='dotted', linewidth=5)
 
 
 if __name__ == '__main__':
     plt.rcParams['figure.dpi'] = 300
     infrastructure = rails.Rails()
-    infrastructure.load('data/positions.csv', 'data/connections.csv')
-    network = main.best(infrastructure, max_lines=18, max_line_duration=180, bound=1_000)
+    infrastructure.load('data/positions_small.csv', 'data/connections_small.csv')
+    network = main.run_alg(infrastructure, max_lines=4, max_line_duration=120, lookahead=4, clean=True)
     ax = plt.subplot()
     draw_infra(ax, infrastructure)
     draw_network(ax, network)

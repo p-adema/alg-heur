@@ -4,70 +4,29 @@ from __future__ import annotations
 
 import itertools
 from collections import deque
+from copy import copy
 from typing import Generator, Any, NamedTuple, Iterator
 
+from src.classes.moves import Move, ExtensionMove, RetractionMove, RemovalMove, AdditionMove
 from src.classes.rails import Station, Rails
-
-
-class TrainLineExtension(NamedTuple):
-    """ Represents an extension of one vertex to a train line """
-    new: bool
-    duration: int
-    line: TrainLine
-    origin: Station
-    destination: Station
-
-    # _network: Network
-    # @property
-    # def new(self) -> bool:
-    #     """ Whether this track is new to the network """
-    #     return self.destination in self._network.unlinked[self.origin]
-
-    def commit(self) -> bool:
-        """ Confirm this extension, adding the destination to the line """
-        return self.line.extend(self.origin, self.destination, self.new)
-
-    def __lt__(self, other: TrainLineExtension | Any) -> bool:
-        """
-        Whether this extension is less valuable than other
-        New extensions are more valuable, then shorter extensions
-        """
-        try:
-            s_new, o_new = self.new, other.new
-            if s_new != o_new:
-                return s_new < o_new
-            return self.duration > other.duration
-        except AttributeError:
-            return NotImplemented
-
-    def __gt__(self, other: TrainLineExtension | Any) -> bool:
-        """
-        Whether this extension is more valuable than other
-        New extensions are more valuable, then shorter extensions
-        """
-        try:
-            if self.new != other.new:
-                return self.new > other.new
-            return self.duration < other.duration
-        except AttributeError:
-            return NotImplemented
 
 
 class TrainLine:
     """ Class representing a train line """
-    def __init__(self, root: Station, rails: Rails, network: Network, max_duration: int):
+
+    def __init__(self, root: Station, network: Network, max_duration: int, index: int):
         """
         Create a new TrainLine
         :param root: The origin station of the line
-        :param rails: The infrastructure the line runs on
         :param network: The network the line belongs to
         :param max_duration: The maximum duration of the line
         """
         self.stations: deque[Station] = deque([root])
-        self._rails = rails
-        self._network = network
+        self.rails = network.rails
+        self.network = network
         self.duration = 0
         self.max_duration = max_duration
+        self.index = index
 
     def extend(self, origin: Station, destination: Station, is_new: bool = None) -> bool:
         """
@@ -78,27 +37,23 @@ class TrainLine:
         :return: False on error
         """
         if is_new is None:
-            is_new = destination in self._network.unlinked[origin]
+            is_new = not self.network.link_count[origin][destination]
         is_end = origin is self.stations[-1]
         is_beginning = origin is self.stations[0]
         if not is_end and not is_beginning:
             print('Warning: Disconnected train line extension attempted')
             return False
         try:
-            ex_duration = self._rails[origin][destination]
+            ex_duration = self.rails[origin][destination]
         except KeyError:
             print("Warning: there is no rail between origin and destination")
             return False
+        self.network.link_count[origin][destination] += 1
+        self.network.link_count[destination][origin] += 1
         if is_new:
-            try:
-                self._network.unlinked[origin].remove(destination)
-                self._network.unlinked[destination].remove(origin)
-                self._network.links += 1
-            except ValueError:
-                print("Warning: invalid is_new value passed to TrainLine.extend")
-                return False
+            self.network.total_links += 1
         else:
-            self._network.overtime += ex_duration
+            self.network.overtime += ex_duration
         self.duration += ex_duration
         if is_end:
             self.stations.append(destination)
@@ -106,22 +61,53 @@ class TrainLine:
             self.stations.appendleft(destination)
         return True
 
+    def retract(self, from_end: bool, is_last: bool | None = None) -> bool:
+        """
+        Remove a station from an end
+        :param from_end: Whether to remove from the end or the beginning of the line
+        :param is_last: If known, whether this removal would change network coverage
+        :return: False on error
+        """
+        removed = self.stations.pop() if from_end else self.stations.popleft()
+        remaining = self.stations[-1] if from_end else self.stations[0]
+        # print('Retraction on', self, id(self.network))
+        # print('     Before:', remaining, removed, self.network.link_count[remaining][removed])
+        try:
+            rem_duration = self.rails[remaining][removed]
+            self.network.link_count[remaining][removed] -= 1
+            self.network.link_count[removed][remaining] -= 1
+        except KeyError:
+            print("Warning: TrainLine improperly constructed")
+            return False
+        self.duration -= rem_duration
+        # print('     After:', remaining, removed, self.network.link_count[remaining][removed])
+        if is_last is None:
+            is_last = not self.network.link_count[remaining][removed]
+
+        # print('     Is_last:', is_last)
+        if is_last:
+            self.network.total_links -= 1
+        else:
+            self.network.overtime -= rem_duration
+        # print('     ', self.network, self.network.total_links, self)
+        return True
+
     def gen_extensions(self, origin: Station, back: Station = None) \
-            -> Generator[TrainLineExtension]:
+            -> Generator[ExtensionMove]:
         """
         Generate individual extensions from this line
         :param origin: Either the head or tail of the line
         :param back: Previous station in line, to prevent backtracking
-        :return: Yields TrainLineExtensions
+        :return: Yields ExtensionMoves
         """
         remaining_duration = self.max_duration - self.duration
-        for extension, d_duration in self._rails[origin].items():
+        for extension, d_duration in self.rails[origin].items():
             if d_duration <= remaining_duration and extension is not back:
-                yield TrainLineExtension(
-                    extension in self._network.unlinked[origin],
+                yield ExtensionMove(
+                    not self.network.link_count[origin][extension],
                     d_duration, self, origin, extension)
 
-    def extensions(self) -> Iterator[TrainLineExtension]:
+    def extensions(self) -> Iterator[ExtensionMove]:
         """ Get an iterable of all valid extensions to the line """
         if len(self.stations) == 1:
             return self.gen_extensions(self.stations[-1])
@@ -134,6 +120,18 @@ class TrainLine:
             self.gen_extensions(self.stations[0], self.stations[1])
         )
 
+    def retractions(self) -> Iterator[RetractionMove]:
+        """ Get an iterator of all valid retractions from this line """
+        if len(self.stations) == 1:
+            return iter(())
+
+        if len(self.stations) == 2:
+            return iter((RetractionMove(True, self),))
+        return iter((
+            RetractionMove(False, self),
+            RetractionMove(True, self))
+        )
+
     def __repr__(self) -> str:
         """ Represent the train line in a short format """
         return f"TrainLine({len(self.stations)} station{'' if len(self.stations) == 1 else 's'}," \
@@ -143,44 +141,78 @@ class TrainLine:
         """ Turn the train line into the format required for A&H output files """
         return '"[' + ', '.join(station.name for station in self.stations) + ']"'
 
+    def copy(self, net: Network) -> TrainLine:
+        tl = TrainLine(self.stations[0], net, self.max_duration, self.index)
+        tl.stations = copy(self.stations)
+        tl.duration = self.duration
+        return tl
+
 
 class Network:
     """ A class representing a network of train lines """
+
     def __init__(self, rails: Rails, max_line_duration: int = 120):
         """
         Create a new network
         :param rails: The infrastructure the network is build on
         :param max_line_duration: The maximum runtime of any single line
         """
-        self._rails = rails
+        self.rails = rails
+        self._max_line_duration = max_line_duration
         self.lines: list[TrainLine] = []
-        self.unlinked: dict[Station, list[Station]] = {
-            stn_a: list(stn_conn.keys())
+        self.link_count: dict[Station, dict[Station, int]] = {
+            stn_a: {stn_b: 0 for stn_b in stn_conn.keys()}
             for stn_a, stn_conn in rails.connections.items()
         }
-        self.links = 0
+        self.total_links = 0
         self.overtime = 0
-        self._max_line_duration = max_line_duration
 
     def add_line(self, root: Station) -> TrainLine:
         """ Add a new line, starting from the root station """
-        line = TrainLine(root, self._rails, self, self._max_line_duration)
+        line = TrainLine(root, self, self._max_line_duration, len(self.lines))
         self.lines.append(line)
         return line
 
-    def extensions(self) -> Iterator[TrainLineExtension]:
+    def extensions(self) -> Iterator[ExtensionMove]:
         """ Get an iterator of all possible extensions to all train lines """
         return itertools.chain.from_iterable(
             line.extensions() for line in self.lines
         )
 
+    def retractions(self) -> Iterator[RetractionMove]:
+        """ Get an iterator of all possible retractions to all train lines """
+        return itertools.chain.from_iterable(
+            line.retractions() for line in self.lines
+        )
+
+    def removals(self) -> Iterator[RemovalMove]:
+        """ Get an iterator of all possible line removals """
+        return (RemovalMove(line.index, self)
+                for line in self.lines if len(line.stations) == 1)
+
+    def additions(self) -> Iterator[AdditionMove]:
+        """ Get an iterator of all possible line additions """
+        return (AdditionMove(station, self) for station in self.rails.stations
+                if any(not connected for connected in self.link_count[station].values()))
+
+    def moves(self, addition: bool = True) -> Iterator[Move]:
+        """ Get an iterator of all possible moves """
+        standard: itertools.chain[Move] = itertools.chain(
+            self.extensions(),
+            self.retractions(),
+            self.removals()
+        )
+        if addition:
+            return itertools.chain(standard, self.additions())
+        return standard
+
     def coverage(self):
         """ The fraction of the rails covered """
-        return self.links / self._rails.links
+        return self.total_links / self.rails.links
 
     def fully_covered(self):
         """ Whether the network covers all rails """
-        return self.links == self._rails.links
+        return self.total_links == self.rails.links
 
     def total_duration(self) -> int:
         """ Total duration of lines in the network """
@@ -230,6 +262,29 @@ class Network:
         """ Create a Network from an output string, on given infrastructure """
         return cls.from_state(NetworkState.from_output(out, infra))
 
+    def copy(self) -> Network:
+        net = Network(self.rails, self._max_line_duration)
+        net.lines = [line.copy(net) for line in self.lines]
+        net.link_count = {
+            stn_a: copy(stn_conn)
+            for stn_a, stn_conn in self.link_count.items()
+        }
+        net.total_links = self.total_links
+        net.overtime = self.overtime
+        return net
+
+    def pivot(self) -> Generator[Network]:
+        while True:
+            yield self.copy()
+
+    def state_neighbours(self, max_lines: int) -> Generator[Network]:
+        addition = len(self.lines) < max_lines
+        yield self.copy()
+        for move, net in zip(self.moves(addition), self.pivot()):
+            move.rebind(net).commit()
+            net.move = move
+            yield net
+
 
 class NetworkState(NamedTuple):
     """ A class compactly representing a single state of a network """
@@ -237,9 +292,9 @@ class NetworkState(NamedTuple):
     infra: Rails
 
     @classmethod
-    def from_network(cls, net: Network, infra: Rails) -> NetworkState:
-        """ Create a NetworkState from a network and on given infrastructure """
-        return cls(tuple(tuple(line.stations) for line in net.lines), infra)
+    def from_network(cls, net: Network) -> NetworkState:
+        """ Create a NetworkState from a network """
+        return cls(tuple(tuple(line.stations) for line in net.lines), net.rails)
 
     @classmethod
     def from_output(cls, output: str, infra: Rails) -> NetworkState:
