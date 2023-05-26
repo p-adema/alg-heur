@@ -3,15 +3,27 @@
 from __future__ import annotations
 
 import random
-from typing import Generator
+from typing import Generator, Final
 
 from src.classes.lines import Network
 from src.classes.moves import ExtensionMove
 from src.classes.rails import Rails, Station
 
+# A value equal to or above the duration of the longest rail connection
+LONGEST_RAIL: Final = 70
 
-def gen_extensions(net: Network, max_lines: int = 7,
-                   optimal: bool = False) -> Generator[ExtensionMove]:
+
+def _sort_key(extension: ExtensionMove):
+    """
+    Assign a value to a TrainLineExtension, where
+    new extensions are more valuable than old ones then
+    short extensions are more valuable than long ones
+    """
+    return extension.new * LONGEST_RAIL - extension.duration
+
+
+def next_extension(net: Network, max_lines: int = 7,
+                   optimal: bool = False) -> ExtensionMove | None:
     """
     Constructively generate extensions to a network
     :param net: The network to generate for
@@ -20,15 +32,6 @@ def gen_extensions(net: Network, max_lines: int = 7,
     :return: Yields ExtensionMoves
     """
     infra = net.rails
-    net.add_line(select_root(infra, net))
-
-    def _sort_key(extension: ExtensionMove):
-        """
-        Assign a value to a TrainLineExtension, where
-        new extensions are more valuable than old ones then
-        short extensions are more valuable than long ones
-        """
-        return extension.new * infra.longest - extension.duration
 
     while True:
         try:
@@ -40,12 +43,12 @@ def gen_extensions(net: Network, max_lines: int = 7,
             continue
 
         if choice.new:
-            yield choice
+            return choice
         elif len(net.lines) < max_lines:
             net.add_line(select_root(infra, net))
 
         elif not optimal:
-            yield choice
+            return choice
         else:
             return
 
@@ -65,18 +68,11 @@ def select_root(infra: Rails, net: Network) -> Station:
     return root
 
 
-def run(infra: Rails | tuple[str, str],
-        max_line_duration: int, **kwargs) -> Network:
-    """ Run the algorithm a single time """
-    if not isinstance(infra, Rails):
-        loc, conn = infra
-        infra = Rails()
-        infra.load(loc, conn)
-
-    net = Network(infra, max_line_duration)
-    gen = gen_extensions(net, **kwargs)
-
-    while not net.fully_covered() and (choice := next(gen, None)):
-        choice.commit()
-
+def next_network(net: Network, **kwargs) -> Network | None:
+    if net.fully_covered():
+        return None
+    ext = next_extension(net, **kwargs)
+    if ext is None:
+        return None
+    ext.commit()
     return net

@@ -6,7 +6,7 @@ import itertools
 
 import matplotlib.pyplot as plt
 
-from src import main
+from src.main import default_runner as runner
 from src.classes import rails, lines
 
 
@@ -39,11 +39,9 @@ def draw_network(axes: plt.Axes, net: lines.Network):
 
 if __name__ == '__main__':
     plt.rcParams['figure.dpi'] = 300
-    infrastructure = rails.Rails()
-    infrastructure.load('data/positions_small.csv', 'data/connections_small.csv')
-    network = main.run_alg(infrastructure, max_lines=4, max_line_duration=120, lookahead=4, clean=True)
+    network = runner.run()
     ax = plt.subplot()
-    draw_infra(ax, infrastructure)
+    draw_infra(ax, runner.infra)
     draw_network(ax, network)
     plt.show()
     print(network.to_output())

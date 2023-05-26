@@ -277,13 +277,14 @@ class Network:
         while True:
             yield self.copy()
 
-    def state_neighbours(self, max_lines: int) -> Generator[Network]:
+    def state_neighbours(self, max_lines: int, permit_stationary: bool = False) -> Generator[Network]:
         addition = len(self.lines) < max_lines
-        yield self.copy()
         for move, net in zip(self.moves(addition), self.pivot()):
             move.rebind(net).commit()
             net.move = move
             yield net
+        if permit_stationary:
+            yield self.copy()
 
 
 class NetworkState(NamedTuple):
