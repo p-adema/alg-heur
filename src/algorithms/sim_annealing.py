@@ -1,34 +1,37 @@
 """ Hill climbing iterative Network generator """
-from __future__ import annotations
-
-from src.classes.lines import Network
-from random import sample, random, choice
 from math import exp
+from random import sample, random, choice
 
-SCHEDULE = 10
-
-
-def next_network(base: Network, max_lines: int = 7, max_iter: int = 500) -> Network | None:
-    quality = base.quality()
-    iteration = getattr(base, 'sa_iter', 0)
-    if iteration >= max_iter:
-        return None
-    temp = temperature(iteration, max_iter)
-    neighbours = list(base.state_neighbours(max_lines))
-    for state_neighbour in sample(neighbours, len(neighbours)):
-        prob = probability(quality, state_neighbour, temp)
-
-        if random() < prob:
-            state_neighbour.sa_iter = iteration + 1
-            return state_neighbour
-    state_neighbour = choice(neighbours)
-    state_neighbour.sa_iter = iteration + 1
-    return state_neighbour
+from src.classes.algorithm import Algorithm
+from src.classes.lines import Network
 
 
-def probability(quality, state_neighbour, temp):
-    return exp(min(state_neighbour.quality() - quality, 0) / temp)
+class SimulatedAnnealing(Algorithm):
+    schedule = 10
 
+    def __init__(self, base: Network, **options):
+        super().__init__(base, **options)
+        self.iter = 0
 
-def temperature(iteration: int, maximum: int) -> float:
-    return SCHEDULE * (1 - iteration / maximum)
+    @staticmethod
+    def probability(quality, state_neighbour, temp):
+        return exp(min(state_neighbour.quality() - quality, 0) / temp)
+
+    def temperature(self, iteration: int, maximum: int) -> float:
+        return self.schedule * (1 - iteration / maximum)
+
+    def __next__(self) -> Network:
+        quality = self.active.quality()
+        max_iter = self.options['max_iter']
+        if self.iter >= max_iter:
+            raise StopIteration
+        temp = self.temperature(self.iter, max_iter)
+        self.iter += 1
+        neighbours = list(self.active.state_neighbours(self.options['max_lines']))
+        for state_neighbour in sample(neighbours, len(neighbours)):
+            prob = self.probability(quality, state_neighbour, temp)
+
+            if random() < prob:
+                return state_neighbour
+        state_neighbour = choice(neighbours)
+        return state_neighbour

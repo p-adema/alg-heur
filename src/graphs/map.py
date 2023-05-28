@@ -39,7 +39,7 @@ def draw_network(axes: plt.Axes, net: lines.Network):
 
 if __name__ == '__main__':
     plt.rcParams['figure.dpi'] = 300
-    network = runner.run()
+    network = runner.best()
     ax = plt.subplot()
     draw_infra(ax, runner.infra)
     draw_network(ax, network)

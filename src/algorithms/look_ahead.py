@@ -1,29 +1,30 @@
 """ Hill climbing iterative Network generator """
 from __future__ import annotations
 
-import random
-from typing import Generator
 from functools import partial
 
-from src.classes.lines import Network, NetworkState
-from src.classes.moves import ExtensionMove
-from src.classes.rails import Rails, Station
-from src.algorithms import greedy
+from src.classes.lines import Network
+from src.classes.algorithm import Algorithm
 
 
-def next_network(base: Network, depth: int = 1, max_lines: int = 7) -> Network:
-    score = partial(look_ahead, depth=depth - 1, max_lines=max_lines)
-    net = max(
-        (state_neighbour for state_neighbour in base.state_neighbours(max_lines)),
-        key=score, default=base)
-    return net
+class LookAhead(Algorithm):
+    def __next__(self) -> Network:
+        max_lines = self.options['max_lines']
+        net = max(
+            (state_neighbour for state_neighbour in
+             self.active.state_neighbours(max_lines, permit_stationary=True)),
+            key=self.look_ahead, default=self.active)
+        return net
 
+    def look_ahead(self, base: Network, depth: int | None = None) -> float:
+        if depth is None:
+            depth = self.options['depth']
+        if not depth:
+            return base.quality()
 
-def look_ahead(base: Network, depth: int, max_lines: int = 7) -> float:
-    if not depth:
-        return base.quality()
-
-    return max(base.quality(), max(
-        (look_ahead(state_neighbour, depth - 1)
-         for state_neighbour in base.state_neighbours(max_lines))
-    ))
+        max_lines = self.options['max_lines']
+        return max(base.quality(), max(
+            (self.look_ahead(state_neighbour, depth - 1)
+             for state_neighbour in
+             base.state_neighbours(max_lines, permit_stationary=True))
+        ))

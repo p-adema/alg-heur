@@ -1,17 +1,18 @@
 from functools import partial
-from typing import Callable
+from typing import Callable, Type
 
 from src.algorithms import greedy
 from src.classes.lines import Network, NetworkState
 from src.classes.rails import Rails
+from src.classes.algorithm import Algorithm
 
 
 class Runner:
-    def __init__(self, next_net: Callable, infra: Rails | tuple[str, str],
-                 max_line_duration: int, backtracking: bool, clean: bool = True, **kwargs):
-        self.next: Callable[[Network], Network | None] = partial(next_net, **kwargs)
+    def __init__(self, alg: Type[Algorithm], infra: Rails | tuple[str, str], max_line_duration: int, backtracking: bool,
+                 max_lines=20, clean: bool = True, **options):
+        self.alg = alg
         self.permit_backtracking = backtracking
-        self.base: Network
+        self.base: Network | None = None
         if not isinstance(infra, Rails):
             loc, conn = infra
             self.infra = Rails()
@@ -19,35 +20,36 @@ class Runner:
         else:
             self.infra = infra
         self.clean = clean
-        self.max_line_duration = max_line_duration
-        self.max_lines = kwargs['max_lines']
+        self.m_line_dur = max_line_duration
+        self.m_lines = max_lines
+        self.options = options
 
     def run(self) -> Network:
         if self.clean:
-            base = Network(self.infra, self.max_line_duration)
+            self.base = Network(self.infra, self.m_line_dur)
         else:
-            base = Runner(greedy.next_network, self.infra,
-                          self.max_line_duration, True, max_lines=self.max_lines).run()
+            self.base = Runner(greedy.Greedy, self.infra, self.m_line_dur,
+                               True, max_lines=self.m_lines).run()
+        alg_inst = self.alg(self.base, max_lines=self.m_lines, **self.options)
         if self.permit_backtracking:
-            return self._run_full(base)
-        return self._run_no_backtrack(base)
+            return self._run_full(alg_inst)
+        return self._run_no_backtrack(alg_inst)
 
-    def _run_full(self, base: Network) -> Network:
-        next = self.next(base)
-        while next is not None:
-            base, next = next, self.next(next)
-        return base
+    def _run_full(self, alg_inst: Algorithm) -> Network:
+        intermediate = self.base
+        for intermediate in alg_inst:
+            pass
+        return intermediate
 
-    def _run_no_backtrack(self, base: Network) -> Network:
-        visited = set(NetworkState.from_network(base))
-        next = self.next(base)
-        while next is not None:
-            base, next = next, self.next(next)
-            state = NetworkState.from_network(base)
+    def _run_no_backtrack(self, alg_inst: Algorithm) -> Network:
+        visited = set(NetworkState.from_network(alg_inst.active))
+        intermediate = self.base
+        for intermediate in alg_inst:
+            state = NetworkState.from_network(intermediate)
             if state in visited:
                 break
             visited.add(state)
-        return base
+        return intermediate
 
     def run_till_cover(self) -> Network:
         """ Repeatedly run until the solution has 100% coverage """
@@ -75,6 +77,6 @@ class Runner:
 
         return sol
 
-    def average(self) -> float:
-        """ Repeatedly run ALG and return the average quality solution generated """
+    def average(self, bound: int = 1_000) -> float:
+        """ Repeatedly run and return the average quality solution generated """
         return sum(self.run().quality() for _ in range(bound)) / bound

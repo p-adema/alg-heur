@@ -5,14 +5,14 @@ from src.classes import rails, lines, runner
 
 infrastructure = rails.Rails()
 infrastructure.load('data/positions.csv', 'data/connections.csv')
-MAX_LINES = 18
+MAX_LINES = 11
 rr = partial(runner.Runner, infra=infrastructure,
              max_line_duration=180, max_lines=MAX_LINES)
 
-std_gr = rr(greedy.next_network, backtracking=True, clean=True)
-std_hc = rr(hill_climb.next_network, backtracking=False, clean=False)
-std_la = rr(look_ahead.next_network, backtracking=False, clean=False, depth=2)
-std_sa = rr(sim_annealing.next_network, backtracking=True, clean=False, max_iter=500)
+std_gr = rr(greedy.Greedy, backtracking=True, clean=True)
+std_hc = rr(hill_climb.HillClimb, backtracking=True, clean=False)
+std_la = rr(look_ahead.LookAhead, backtracking=False, clean=False, depth=1)
+std_sa = rr(sim_annealing.SimulatedAnnealing, backtracking=True, clean=False, max_iter=500)
 
 default_runner = std_sa
 
