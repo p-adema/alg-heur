@@ -1,30 +1,33 @@
-""" Hill climbing iterative Network generator """
+""" Best-first iterative algorithm, can look ahead in state space """
 from __future__ import annotations
 
-from functools import partial
-
-from src.classes.lines import Network
 from src.classes.algorithm import Algorithm
+from src.classes.lines import Network
 
 
 class LookAhead(Algorithm):
+    """ Best first iterative algorithm, ranks moves based on
+        highest score achievable with 'depth' further moves  """
+
     def __next__(self) -> Network:
-        max_lines = self.options['max_lines']
+        line_cap = self.options.get('line_cap', 7)
         net = max(
             (state_neighbour for state_neighbour in
-             self.active.state_neighbours(max_lines, permit_stationary=True)),
+             self.active.state_neighbours(line_cap, stationary=True)),
             key=self.look_ahead, default=self.active)
         return net
 
     def look_ahead(self, base: Network, depth: int | None = None) -> float:
+        """ Look 'depth' moves ahead (default is the given depth cap),
+            and return the highest score achievable                    """
         if depth is None:
-            depth = self.options['depth']
+            depth = self.options.get('depth', 1)
         if not depth:
             return base.quality()
 
-        max_lines = self.options['max_lines']
+        line_cap = self.options.get('line_cap', 7)
         return max(base.quality(), max(
             (self.look_ahead(state_neighbour, depth - 1)
              for state_neighbour in
-             base.state_neighbours(max_lines, permit_stationary=True))
+             base.state_neighbours(line_cap, stationary=True))
         ))

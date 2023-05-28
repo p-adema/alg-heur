@@ -1,5 +1,4 @@
 """ Classes representing a train line network """
-
 from __future__ import annotations
 
 import itertools
@@ -14,18 +13,18 @@ from src.classes.rails import Station, Rails
 class TrainLine:
     """ Class representing a train line """
 
-    def __init__(self, root: Station, network: Network, max_duration: int, index: int):
+    def __init__(self, root: Station, network: Network, dist_cap: int, index: int):
         """
         Create a new TrainLine
         :param root: The origin station of the line
         :param network: The network the line belongs to
-        :param max_duration: The maximum duration of the line
+        :param dist_cap: The maximum duration of the line
         """
         self.stations: deque[Station] = deque([root])
         self.rails = network.rails
         self.network = network
         self.duration = 0
-        self.max_duration = max_duration
+        self.dist_cap = dist_cap
         self.index = index
 
     def extend(self, origin: Station, destination: Station, is_new: bool = None) -> bool:
@@ -100,7 +99,7 @@ class TrainLine:
         :param back: Previous station in line, to prevent backtracking
         :return: Yields ExtensionMoves
         """
-        remaining_duration = self.max_duration - self.duration
+        remaining_duration = self.dist_cap - self.duration
         for extension, d_duration in self.rails[origin].items():
             if d_duration <= remaining_duration and extension is not back:
                 yield ExtensionMove(
@@ -142,23 +141,24 @@ class TrainLine:
         return '"[' + ', '.join(station.name for station in self.stations) + ']"'
 
     def copy(self, net: Network) -> TrainLine:
-        tl = TrainLine(self.stations[0], net, self.max_duration, self.index)
-        tl.stations = copy(self.stations)
-        tl.duration = self.duration
-        return tl
+        """ Create a copy of this train line, onto the given network """
+        new = TrainLine(self.stations[0], net, self.dist_cap, self.index)
+        new.stations = copy(self.stations)
+        new.duration = self.duration
+        return new
 
 
 class Network:
     """ A class representing a network of train lines """
 
-    def __init__(self, rails: Rails, max_line_duration: int = 120):
+    def __init__(self, rails: Rails, dist_cap: int = 120):
         """
         Create a new network
         :param rails: The infrastructure the network is build on
-        :param max_line_duration: The maximum runtime of any single line
+        :param dist_cap: The maximum runtime of any single line
         """
         self.rails = rails
-        self._max_line_duration = max_line_duration
+        self._dist_cap = dist_cap
         self.lines: list[TrainLine] = []
         self.link_count: dict[Station, dict[Station, int]] = {
             stn_a: {stn_b: 0 for stn_b in stn_conn.keys()}
@@ -169,7 +169,7 @@ class Network:
 
     def add_line(self, root: Station) -> TrainLine:
         """ Add a new line, starting from the root station """
-        line = TrainLine(root, self, self._max_line_duration, len(self.lines))
+        line = TrainLine(root, self, self._dist_cap, len(self.lines))
         self.lines.append(line)
         return line
 
@@ -263,7 +263,8 @@ class Network:
         return cls.from_state(NetworkState.from_output(out, infra))
 
     def copy(self) -> Network:
-        net = Network(self.rails, self._max_line_duration)
+        """ Create a copy of this network """
+        net = Network(self.rails, self._dist_cap)
         net.lines = [line.copy(net) for line in self.lines]
         net.link_count = {
             stn_a: copy(stn_conn)
@@ -274,16 +275,20 @@ class Network:
         return net
 
     def pivot(self) -> Generator[Network]:
+        """ Repeatedly yield copies of this network """
         while True:
             yield self.copy()
 
-    def state_neighbours(self, max_lines: int, permit_stationary: bool = False) -> Generator[Network]:
-        addition = len(self.lines) < max_lines
+    def state_neighbours(self, line_cap: int, stationary: bool = False) \
+            -> Generator[Network]:
+        """ Yield all state neighbours from this network, including
+            this network if stationary is True                      """
+        addition = len(self.lines) < line_cap
         for move, net in zip(self.moves(addition), self.pivot()):
             move.rebind(net).commit()
             net.move = move
             yield net
-        if permit_stationary:
+        if stationary:
             yield self.copy()
 
 

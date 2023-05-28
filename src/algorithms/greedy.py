@@ -1,23 +1,23 @@
-""" Greedy constructive TrainLineExtension generator """
+""" Greedy constructive algorithm, avoids overlap """
 
 from __future__ import annotations
 
 import random
-from typing import Generator, Final
 
+from src.classes.algorithm import Algorithm
 from src.classes.lines import Network
 from src.classes.moves import ExtensionMove
-from src.classes.rails import Rails, Station
-from src.classes.algorithm import Algorithm
+from src.classes.rails import Station
 
 
 class Greedy(Algorithm):
-    def __init__(self, base: Network, max_lines: int = 7,
-                 optimal: bool = False):
-        self.active = base
+    """ Greedy constructive algorithm type, avoids overlap """
+
+    def __init__(self, base: Network, **options):
+        super().__init__(base, **options)
         self.infra = base.rails
-        self.max_lines = max_lines
-        self.optimal = optimal
+        self.line_cap = options.get('line_cap', 7)
+        self.optimal = options.get('optimal', False)
         self.longest_rail = self.infra.longest
 
     def _sort_key(self, extension: ExtensionMove):
@@ -37,14 +37,14 @@ class Greedy(Algorithm):
             try:
                 choice = max(self.active.extensions(), key=self._sort_key)
             except ValueError:
-                if len(self.active.lines) == self.max_lines:
+                if len(self.active.lines) == self.line_cap:
                     return None
                 self.active.add_line(self.select_root())
                 continue
 
             if choice.new:
                 return choice
-            elif len(self.active.lines) < self.max_lines:
+            if len(self.active.lines) < self.line_cap:
                 self.active.add_line(self.select_root())
 
             elif not self.optimal:
@@ -76,5 +76,3 @@ class Greedy(Algorithm):
             raise StopIteration
         ext.commit()
         return self.active
-
-

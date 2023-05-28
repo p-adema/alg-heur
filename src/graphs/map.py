@@ -6,11 +6,11 @@ import itertools
 
 import matplotlib.pyplot as plt
 
-from src.main import default_runner as runner
 from src.classes import rails, lines
+from src.defaults import default_runner as runner
 
 
-def draw_infra(axes: plt.Axes, infra: rails.Rails):
+def ax_draw_infra(axes: plt.Axes, infra: rails.Rails):
     """ Draw the rail infrastructure on the given axes """
     for station in infra.stations:
         axes.scatter(station.E, station.N, color='black', marker='+')
@@ -24,7 +24,7 @@ def draw_infra(axes: plt.Axes, infra: rails.Rails):
 LINE_COLOURS = ['blue', 'orange', 'green', 'purple', 'brown', 'pink', 'olive', 'cyan', 'gray']
 
 
-def draw_network(axes: plt.Axes, net: lines.Network):
+def ax_draw_network(axes: plt.Axes, net: lines.Network):
     """ Draw a network on the given axes """
     for line, colour in zip(net.lines, itertools.cycle(LINE_COLOURS)):
         for s_a, s_b in itertools.pairwise(line.stations):
@@ -37,11 +37,16 @@ def draw_network(axes: plt.Axes, net: lines.Network):
             axes.plot((s_a.E, s_b.E), (s_a.N, s_b.N), color='red', linestyle='dotted', linewidth=5)
 
 
+def draw_network(net: lines.Network):
+    """ Plot a network and its infrastructure """
+    axes = plt.subplot()
+    ax_draw_infra(axes, net.rails)
+    ax_draw_network(axes, net)
+    plt.show()
+
+
 if __name__ == '__main__':
     plt.rcParams['figure.dpi'] = 300
     network = runner.best()
-    ax = plt.subplot()
-    draw_infra(ax, runner.infra)
-    draw_network(ax, network)
-    plt.show()
+    draw_network(network)
     print(network.to_output())

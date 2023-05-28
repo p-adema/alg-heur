@@ -1,18 +1,30 @@
-from functools import partial
-from typing import Callable, Type
+""" Class to unify interface for running algorithms """
+
+from __future__ import annotations
+
+from typing import Type
 
 from src.algorithms import greedy
+from src.classes.algorithm import Algorithm
 from src.classes.lines import Network, NetworkState
 from src.classes.rails import Rails
-from src.classes.algorithm import Algorithm
 
 
 class Runner:
-    def __init__(self, alg: Type[Algorithm], infra: Rails | tuple[str, str], max_line_duration: int, backtracking: bool,
-                 max_lines=20, clean: bool = True, **options):
+    """ Class representing a run configuration for an algorithm """
+
+    def __init__(self, alg: Type[Algorithm], infra: Rails | tuple[str, str],
+                 backtracking: bool, clean: bool = True, **options):
+        """
+        Create a new run configuration
+        :param alg: The Algorithm Type to construct from
+        :param infra: The infrastructure or relevant files
+        :param backtracking: Whether algorithms should be allowed to backtrack
+        :param clean: Whether a random solution should not be generated as base
+        :param options: Further options, passed to the algorithm
+        """
         self.alg = alg
-        self.permit_backtracking = backtracking
-        self.base: Network | None = None
+        self.backtracking = backtracking
         if not isinstance(infra, Rails):
             loc, conn = infra
             self.infra = Rails()
@@ -20,30 +32,35 @@ class Runner:
         else:
             self.infra = infra
         self.clean = clean
-        self.m_line_dur = max_line_duration
-        self.m_lines = max_lines
+        self.dist_cap = options.get('dist_cap', 180)
+        self.line_cap = options.get('line_cap', 20)
         self.options = options
 
     def run(self) -> Network:
+        """ Run the algorithm once, returning the final network """
         if self.clean:
-            self.base = Network(self.infra, self.m_line_dur)
+            base = Network(self.infra, self.dist_cap)
         else:
-            self.base = Runner(greedy.Greedy, self.infra, self.m_line_dur,
-                               True, max_lines=self.m_lines).run()
-        alg_inst = self.alg(self.base, max_lines=self.m_lines, **self.options)
-        if self.permit_backtracking:
+            base = Runner(greedy.Greedy, self.infra, True,
+                          dist_cap=self.dist_cap, line_cap=self.line_cap).run()
+        alg_inst = self.alg(base, **self.options)
+        if self.backtracking:
             return self._run_full(alg_inst)
         return self._run_no_backtrack(alg_inst)
 
-    def _run_full(self, alg_inst: Algorithm) -> Network:
-        intermediate = self.base
+    @staticmethod
+    def _run_full(alg_inst: Algorithm) -> Network:
+        """ Run the given instance without watching for backtracking """
+        intermediate = alg_inst.active
         for intermediate in alg_inst:
             pass
         return intermediate
 
-    def _run_no_backtrack(self, alg_inst: Algorithm) -> Network:
+    @staticmethod
+    def _run_no_backtrack(alg_inst: Algorithm) -> Network:
+        """ Run the given instance, returning if it backtracks """
         visited = set(NetworkState.from_network(alg_inst.active))
-        intermediate = self.base
+        intermediate = alg_inst.active
         for intermediate in alg_inst:
             state = NetworkState.from_network(intermediate)
             if state in visited:

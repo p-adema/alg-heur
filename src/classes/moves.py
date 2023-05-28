@@ -6,6 +6,7 @@ from abc import abstractmethod
 from typing import Protocol, NamedTuple, TYPE_CHECKING
 
 if TYPE_CHECKING:
+    # Prevent import loop
     from src.classes.lines import Network, TrainLine
     from src.classes.rails import Station
 
@@ -83,3 +84,16 @@ class AdditionMove(NamedTuple):
     def rebind(self, net: Network) -> AdditionMove:
         """ Rebind this addition to a different network """
         return self._replace(network=net)
+
+
+if TYPE_CHECKING:
+    # Pylint doesn't see NamedTuple._replace
+    # See: https://github.com/pylint-dev/pylint/issues/4070
+    def _replace(self, **_):
+        return self
+
+
+    ExtensionMove._replace = _replace
+    RetractionMove._replace = _replace
+    RemovalMove._replace = _replace
+    AdditionMove._replace = _replace
