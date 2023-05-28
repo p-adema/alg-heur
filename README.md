@@ -2,5 +2,5 @@
 
 File structure
 
-* data - Data sources
-* src - Source code
+* `data` - Data sources
+* `src` - Source code
