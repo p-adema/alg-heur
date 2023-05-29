@@ -18,6 +18,7 @@ class Random(Algorithm):
         self.add_lines()
 
     def add_lines(self):
+        """ Add 'line_cap' lines to the active network """
         self.active: Network
         for addition in sample(list(self.active.additions()), self.line_cap):
             addition.commit()
@@ -27,5 +28,5 @@ class Random(Algorithm):
             for ext in sample(list(self.active.extensions()), 1):
                 ext.commit()
                 return self.active
-        except ValueError:
-            raise StopIteration
+        except ValueError as exc:
+            raise StopIteration from exc

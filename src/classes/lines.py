@@ -296,11 +296,12 @@ class NetworkState(NamedTuple):
     """ A class compactly representing a single state of a network """
     lines: tuple[tuple[Station]]
     infra: Rails
+    score: float
 
     @classmethod
     def from_network(cls, net: Network) -> NetworkState:
         """ Create a NetworkState from a network """
-        return cls(tuple(tuple(line.stations) for line in net.lines), net.rails)
+        return cls(tuple(tuple(line.stations) for line in net.lines), net.rails, net.quality())
 
     @classmethod
     def from_output(cls, output: str, infra: Rails) -> NetworkState:
@@ -308,7 +309,7 @@ class NetworkState(NamedTuple):
         return cls(tuple(
             tuple(infra.names[name] for name in line) for line in
             (line.split('"')[1][1:-1].split(', ') for line in output.split('\n')[1:-1])
-        ), infra)
+        ), infra, float(output.split('score,')[1]))
 
     def __repr__(self) -> str:
         """ Represent a NetworkState in a short format """

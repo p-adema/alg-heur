@@ -1,8 +1,15 @@
-""" Class to unify interface for running algorithms """
+""" Class to unify interface for running algorithms
+
+Optional parameter list:
+    clean: Whether a random solution should not be generated as base
+    backtracking: Whether backtracking should be permitted, default True
+    state_hook: A callable to log the current state, default disabled
+    state_hook_out: A TextIO handle for a file for the hook to output to
+"""
 
 from __future__ import annotations
 
-from typing import Type
+from typing import Type, Callable
 
 from src.algorithms import greedy
 from src.classes.algorithm import Algorithm
@@ -13,18 +20,17 @@ from src.classes.rails import Rails
 class Runner:
     """ Class representing a run configuration for an algorithm """
 
-    def __init__(self, alg: Type[Algorithm], infra: Rails | tuple[str, str],
-                 backtracking: bool, clean: bool = True, **options):
+    def __init__(self, alg: Type[Algorithm],
+                 infra: Rails | tuple[str, str], clean: bool = True,
+                 state_hook: Callable | None = None, **opt):
         """
         Create a new run configuration
         :param alg: The Algorithm Type to construct from
         :param infra: The infrastructure or relevant files
-        :param backtracking: Whether algorithms should be allowed to backtrack
         :param clean: Whether a random solution should not be generated as base
-        :param options: Further options, passed to the algorithm
+        :param opt: Further options, see docstring at top of file
         """
         self.alg = alg
-        self.backtracking = backtracking
         if not isinstance(infra, Rails):
             loc, conn = infra
             self.infra = Rails()
@@ -32,36 +38,44 @@ class Runner:
         else:
             self.infra = infra
         self.clean = clean
-        self.dist_cap = options.get('dist_cap', 180)
-        self.line_cap = options.get('line_cap', 20)
-        self.options = options
+        self.state_hook = state_hook
+        self.dist_cap = opt.get('dist_cap', 180)
+        self.line_cap = opt.get('line_cap', 20)
+        self.options = opt
 
     def run(self) -> Network:
         """ Run the algorithm once, returning the final network """
         if self.clean:
             base = Network(self.infra, self.dist_cap)
         else:
-            base = Runner(greedy.Greedy, self.infra, True,
+            base = Runner(greedy.Greedy, self.infra,
                           dist_cap=self.dist_cap, line_cap=self.line_cap).run()
         alg_inst = self.alg(base, **self.options)
-        if self.backtracking:
+        if self.options.get('backtracking', True):
             return self._run_full(alg_inst)
         return self._run_no_backtrack(alg_inst)
 
-    @staticmethod
-    def _run_full(alg_inst: Algorithm) -> Network:
+    def _run_full(self, alg_inst: Algorithm) -> Network:
         """ Run the given instance without watching for backtracking """
         intermediate = alg_inst.active
+        sh_buffer = None
+        if self.state_hook is not None and 'state_hook_out' in self.options:
+            sh_buffer = self.options['state_hook_out']
         for intermediate in alg_inst:
-            pass
+            if sh_buffer is not None:
+                self.state_hook(intermediate, sh_buffer)
         return intermediate
 
-    @staticmethod
-    def _run_no_backtrack(alg_inst: Algorithm) -> Network:
+    def _run_no_backtrack(self, alg_inst: Algorithm) -> Network:
         """ Run the given instance, returning if it backtracks """
         visited = set(NetworkState.from_network(alg_inst.active))
         intermediate = alg_inst.active
+        sh_buffer = None
+        if self.state_hook is not None and 'state_hook_out' in self.options:
+            sh_buffer = self.options['state_hook_out']
         for intermediate in alg_inst:
+            if sh_buffer is not None:
+                self.state_hook(intermediate, sh_buffer)
             state = NetworkState.from_network(intermediate)
             if state in visited:
                 break

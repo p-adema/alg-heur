@@ -3,5 +3,6 @@
 !/data/
 !/src/
 !/results/
+/results/training/*
 !/README.md
 !/requirements.txt

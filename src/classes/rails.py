@@ -24,6 +24,7 @@ class Rails:
         self.stations: tuple[Station, ...] = ()
         self.connections: dict[Station, dict[Station, int]] = {}
         self.names: dict[str, Station] = {}
+        self.ids: dict[Station, int] = {}
         self.links = 0
         self.longest = 0
 
@@ -40,6 +41,7 @@ class Rails:
                 station = Station(name, float(n_coord), float(e_coord))
                 stations.append(station)
                 self.names[name] = station
+                self.ids[station] = len(stations)
 
         self.connections = {station: {} for station in stations}
         with open(connections_filename, 'r', encoding='utf-8') as connections_file:
