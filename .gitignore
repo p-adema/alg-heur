@@ -2,7 +2,9 @@
 !/*.py
 !/data/
 !/src/
+/src/machine_learning
 !/results/
 /results/training/*
 !/README.md
 !/requirements.txt
+!/.gitignore
