@@ -18,7 +18,7 @@ class Greedy(Algorithm):
         self.infra = base.rails
         self.line_cap = options.get('line_cap', 7)
         self.optimal = options.get('optimal', False)
-        self.longest_rail = self.infra.longest
+        self.longest_rail = self.infra.max_duration
 
     def _sort_key(self, extension: ExtensionMove):
         """

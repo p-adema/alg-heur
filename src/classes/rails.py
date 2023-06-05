@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
-from typing import NamedTuple
+import math
+import random
+from typing import NamedTuple, Generator, Literal
 
 
 class Station(NamedTuple):
@@ -15,6 +17,17 @@ class Station(NamedTuple):
         """ Returns a short representation of the station """
         return f"Station('{self.name}')"
 
+    def distance(self, other: Station):
+        """ Returns the Euclidian distance to another station in degrees """
+        return math.sqrt((self.N - other.N) ** 2 + (self.E - other.E) ** 2)
+
+
+class RailModification(NamedTuple):
+    """ Wrapper for a modification to the rail network """
+    type: Literal['move_rail'] | Literal['drop_rail'] | Literal['drop_station']
+    origin: Station
+    dest: Station | None = None
+
 
 class Rails:
     """ Class representing the full rail network """
@@ -24,9 +37,14 @@ class Rails:
         self.stations: tuple[Station, ...] = ()
         self.connections: dict[Station, dict[Station, int]] = {}
         self.names: dict[str, Station] = {}
-        self.ids: dict[Station, int] = {}
         self.links = 0
-        self.longest = 0
+
+        # max_duration is *not* updated when rails are modified:
+        #   it serves as an upper bound to rail length
+        self.max_duration = 0
+
+        self.speed: float = -1
+        self.modifications: list[RailModification] = []
 
     def load(self, positions_filename: str, connections_filename: str):
         """
@@ -41,19 +59,98 @@ class Rails:
                 station = Station(name, float(n_coord), float(e_coord))
                 stations.append(station)
                 self.names[name] = station
-                self.ids[station] = len(stations)
 
         self.connections = {station: {} for station in stations}
+        sum_speed = 0
         with open(connections_filename, 'r', encoding='utf-8') as connections_file:
             connections_file.readline()
-            for name_a, name_b, time_str in (line.strip().split(',') for line in connections_file):
-                station_a, station_b = self.names[name_a], self.names[name_b]
-                self.connections[station_a][station_b] = int(time_str)
-                self.connections[station_b][station_a] = int(time_str)
+            for station_a, station_b, duration in \
+                    ((self.names[name_a], self.names[name_b], int(dur_s))
+                     for name_a, name_b, dur_s in
+                     (line.strip().split(',') for line in connections_file)):
+                self.connections[station_a][station_b] = duration
+                self.connections[station_b][station_a] = duration
                 self.links += 1
-                self.longest = max(self.longest, int(time_str))
+                sum_speed += self._calc_speed(station_a, station_b, duration)
+                self.max_duration = max(self.max_duration, duration)
 
         self.stations = tuple(stations)
+        self.speed = sum_speed / self.links
+
+    def copy(self) -> Rails:
+        """ Creates a copy of this rail network, for modification """
+        new = Rails()
+        new.stations = self.stations
+        new.connections = {s: c.copy() for s, c in self.connections.items()}
+        new.names = self.names
+        new.links = self.links
+        new.max_duration = self.max_duration
+        new.speed = self.speed
+        return new
+
+    def pivot(self) -> Generator[Rails]:
+        """ Yields copies of this rail network """
+        while True:
+            yield self.copy()
+
+    def swap_rails(self, count: int = 3):
+        """ Swap the destination of 'count' rails randomly,
+            estimating the resulting durations from the average speed """
+        for _ in range(count):
+            origin = random.choice(self.stations)
+            old_outgoing = list(self.connections[origin].keys())
+            old_dest = random.choice(old_outgoing)
+            new_dest = random.choice([dest for dest in self.stations
+                                      if dest not in old_outgoing])
+            duration = self._est_time(origin, new_dest)
+            del self.connections[origin][old_dest]
+            del self.connections[old_dest][origin]
+            self.connections[origin][new_dest] = duration
+            self.connections[new_dest][origin] = duration
+            self.modifications.append(
+                RailModification('move_rail', origin, new_dest))
+
+    def drop_rails(self, count: int = 3):
+        """ Drop 'count' random rails from the network """
+        for _ in range(count):
+            origin = random.choice(self.stations)
+            dest = random.choice(list(self.connections[origin].keys()))
+            del self.connections[origin][dest]
+            del self.connections[dest][origin]
+            self.links -= 1
+            self.modifications.append(
+                RailModification('drop_rail', origin, dest))
+
+    def drop_stations(self, count: int = 1, names: list[str] | None = None):
+        """ Drop 'count' random stations from the network,
+            or specific stations by name                    """
+        if names is not None:
+            for name in names:
+                self._drop_station(self.names[name])
+            return
+
+        for _ in range(count):
+            origin = random.choice(self.stations)
+            self._drop_station(origin)
+
+    def _drop_station(self, origin):
+        self.stations = tuple(s for s in self.stations if s is not origin)
+        self.links -= len(self.connections[origin].keys())
+        del self.connections[origin]
+        for conn in self.connections.values():
+            if origin in conn:
+                del conn[origin]
+        self.modifications.append(
+            RailModification('drop_station', origin))
+
+    @staticmethod
+    def _calc_speed(s_a: Station, s_b: Station, time: int) -> float:
+        """ Calculate the mean speed (degrees per minute) of a connection """
+        return s_a.distance(s_b) / time
+
+    def _est_time(self, s_a: Station, s_b: Station) -> int:
+        """ Estimate the duration of a new line based on average speeds """
+        return round(self.speed / s_a.distance(s_b))
 
     def __getitem__(self, station: Station) -> dict[Station, int]:
         """ Retrieve the connections to other stations, from a given station """

@@ -9,6 +9,7 @@ Optional parameter list:
 
 from __future__ import annotations
 
+from heapq import nlargest
 from typing import Type, Callable
 
 from src.algorithms import greedy
@@ -108,6 +109,12 @@ class Runner:
 
         return sol
 
-    def average(self, bound: int = 1_000) -> float:
+    def average(self, count: int = 1_000) -> float:
         """ Repeatedly run and return the average quality solution generated """
-        return sum(self.run().quality() for _ in range(bound)) / bound
+        return sum(self.run().quality() for _ in range(count)) / count
+
+    def percentile(self, nth: int = 90, bound: int = 1_000) -> float:
+        """ Repeatedly run and return the average quality above the nth percentile """
+        count = round(bound * (1 - nth / 100))
+        top = nlargest(count, (self.run().quality() for _ in range(bound)))
+        return sum(top) / count
