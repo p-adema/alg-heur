@@ -1,3 +1,5 @@
+""" Generate data on the effects of rail / station dropout """
+
 from os.path import isfile
 
 from src.defaults import default_runner as runner, default_infra
@@ -9,15 +11,17 @@ STATION_HEADER = "name,quality\n"
 
 
 def safety_check(path: str) -> bool:
+    """ Run a check for if a file exists """
     if isfile(path):
         print(f'Datafile already present at {path}')
-        if input(f"     Overwrite data? (y/N)  ").lower() != 'y':
+        if input("     Overwrite data? (y/N)  ").lower() != 'y':
             print('     Aborted.')
             return False
     return True
 
 
 def drop_station(dropped: str | None = None) -> float:
+    """ Measure the effect of dropping a station """
     print('Measuring', dropped)
     if dropped is not None:
         infra = default_infra.copy()
@@ -31,12 +35,14 @@ def drop_station(dropped: str | None = None) -> float:
 
 
 def drop_all_stations() -> None:
+    """ Measure the effects of dropping stations,
+        one by one for all stations                """
     path = f'results/statistics/{runner.name}_drop_stations.csv'
     if not safety_check(path):
         return
 
     print('Testing all station drops')
-    with open(path, 'w') as file:
+    with open(path, 'w', encoding='utf-8') as file:
         file.write(STATION_HEADER)
         file.write(f',{drop_station()}\n')
         for name in default_infra.names.keys():

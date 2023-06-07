@@ -121,4 +121,5 @@ class Runner:
 
     @property
     def name(self):
+        """ Get the name of the assigned algorithm """
         return self.alg.name
