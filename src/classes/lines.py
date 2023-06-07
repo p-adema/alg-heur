@@ -241,6 +241,13 @@ class Network:
         except AttributeError:
             return NotImplemented
 
+    def __gt__(self, other: Network | Any):
+        """ Whether this network has a lower quality than other """
+        try:
+            return self.quality() > other.quality()
+        except AttributeError:
+            return NotImplemented
+
     def to_output(self) -> str:
         """ Generate an output string in the format required by A&H output files """
         line_outputs = [f'train_{i},{line.output()}\n' for i, line in enumerate(self.lines)]

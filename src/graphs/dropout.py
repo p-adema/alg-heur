@@ -46,13 +46,13 @@ def hue(percentage: float) -> str:
     return mc.to_hex(colorsys.hsv_to_rgb(scaled, 1, 0.8))
 
 
-def station_graph(alg: str):
+def station_map(alg: str):
     """ Create a visualisation of the effects of station dropout """
     _, axes = plt.subplots(dpi=DPI)
     for s_a, link_dict in default_infra.connections.items():
         for s_b in link_dict:
             axes.plot((s_a.E, s_b.E), (s_a.N, s_b.N), color='black',
-                    linewidth=0.5, linestyle='dotted')
+                      linewidth=0.5, linestyle='dotted')
 
     with open(f'results/statistics/{alg}_drop_stations.csv',
               'r', encoding='utf-8') as file:
@@ -68,5 +68,27 @@ def station_graph(alg: str):
     plt.show()
 
 
+def rail_map(alg: str, action: str):
+    """ Create a visualisation of the effects of rail dropout """
+    _, axes = plt.subplots(dpi=DPI)
+    for station in default_infra.stations:
+        axes.scatter(station.E, station.N, color='black', marker='o', s=10)
+
+    with open(f'results/statistics/{alg}_{action}_rails.csv',
+              'r', encoding='utf-8') as file:
+        file.readline()
+        base = float(file.readline().split(',')[2])
+        rows = (row.split(',') for row in file)
+        data = ((default_infra.names[nm_a], default_infra.names[nm_b],
+                 float(sc)) for nm_a, nm_b, sc in rows)
+        for s_a, s_b, score in data:
+            result = (score / base - 1) * 5 + 1 + (0.2 if score > base else -0.4)
+            style = 'dashed' if score > base else 'dotted'
+            axes.plot((s_a.E, s_b.E), (s_a.N, s_b.N),
+                      color=hue(result), linewidth=2, linestyle=style, zorder=-1)
+
+    plt.show()
+
+
 if __name__ == '__main__':
-    station_graph('gr')
+    rail_map('gr', 'swap')

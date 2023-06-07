@@ -93,33 +93,54 @@ class Rails:
         while True:
             yield self.copy()
 
-    def swap_rails(self, count: int = 3):
+    def swap_rails(self, count: int = 3,
+                   pairs: list[tuple[str, str]] | None = None):
         """ Swap the destination of 'count' rails randomly,
-            estimating the resulting durations from the average speed """
+            estimating the resulting durations from the average speed,
+            or do so for specific rails between given station names     """
+        if pairs is not None:
+            for name_a, name_b in pairs:
+                self._swap_rail(self.names[name_a], self.names[name_b])
+            return
+
         for _ in range(count):
             origin = random.choice(self.stations)
             old_outgoing = list(self.connections[origin].keys())
             old_dest = random.choice(old_outgoing)
-            new_dest = random.choice([dest for dest in self.stations
-                                      if dest not in old_outgoing])
-            duration = self._est_time(origin, new_dest)
-            del self.connections[origin][old_dest]
-            del self.connections[old_dest][origin]
-            self.connections[origin][new_dest] = duration
-            self.connections[new_dest][origin] = duration
-            self.modifications.append(
-                RailModification('move_rail', origin, new_dest))
+            self._swap_rail(origin, old_dest)
 
-    def drop_rails(self, count: int = 3):
-        """ Drop 'count' random rails from the network """
+    def _swap_rail(self, origin, old_dest):
+        new_dest = random.choice([dest for dest in self.stations
+                                  if dest not in self.connections[origin]
+                                  and dest is not origin])
+        duration = self._est_time(origin, new_dest)
+        del self.connections[origin][old_dest]
+        del self.connections[old_dest][origin]
+        self.connections[origin][new_dest] = duration
+        self.connections[new_dest][origin] = duration
+        self.modifications.append(
+            RailModification('move_rail', origin, new_dest))
+
+    def drop_rails(self, count: int = 3,
+                   pairs: list[tuple[str, str]] | None = None):
+        """ Drop 'count' random rails from the network,
+            or specific rails by station names          """
+        if pairs is not None:
+            for name_a, name_b in pairs:
+                self._drop_rail(self.names[name_a], self.names[name_b])
+            return
+
         for _ in range(count):
             origin = random.choice(self.stations)
             dest = random.choice(list(self.connections[origin].keys()))
-            del self.connections[origin][dest]
-            del self.connections[dest][origin]
-            self.links -= 1
-            self.modifications.append(
-                RailModification('drop_rail', origin, dest))
+            self._drop_rail(origin, dest)
+
+    def _drop_rail(self, origin, dest):
+        del self.connections[origin][dest]
+        del self.connections[dest][origin]
+        self.links -= 1
+        self.modifications.append(
+            RailModification('drop_rail', origin, dest))
 
     def drop_stations(self, count: int = 1, names: list[str] | None = None):
         """ Drop 'count' random stations from the network,

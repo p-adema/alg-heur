@@ -10,7 +10,7 @@ Optional parameter list:
 from __future__ import annotations
 
 from heapq import nlargest
-from typing import Type, Callable
+from typing import Type, Callable, Generator
 
 from src.algorithms import greedy
 from src.classes.algorithm import Algorithm
@@ -83,40 +83,39 @@ class Runner:
             visited.add(state)
         return intermediate
 
+    def runs(self, bound: int | None = None) -> Generator[Network]:
+        """ Yield networks, up to a limit if specified """
+        if bound is None:
+            while True:
+                yield self.run()
+
+        for _ in range(bound):
+            yield self.run()
+
     def run_till_cover(self) -> Network:
         """ Repeatedly run until the solution has 100% coverage """
-        sol = self.run()
-        while not sol.fully_covered():
-            sol = self.run()
-
-        return sol
+        for sol in self.runs():
+            if sol.fully_covered():
+                return sol
 
     def run_till_optimal(self) -> Network:
         """ Repeatedly run until a fully-covering, non-overlapping solution is found """
-        sol = self.run()
-        while not sol.is_optimal():
-            sol = self.run()
-
-        return sol
+        for sol in self.runs():
+            if sol.is_optimal():
+                return sol
 
     def best(self, bound: int = 1_000) -> Network:
         """ Repeatedly run until optimal or bound and return the highest scoring network """
-        sol = self.run()
-        iterations = 0
-        while not sol.is_optimal() and iterations < bound:
-            sol = max(sol, self.run())
-            iterations += 1
-
-        return sol
+        return max(self.runs(bound))
 
     def average(self, count: int = 1_000) -> float:
         """ Repeatedly run and return the average quality solution generated """
-        return sum(self.run().quality() for _ in range(count)) / count
+        return sum(sol.quality() for sol in self.runs(count)) / count
 
     def percentile(self, nth: int = 90, bound: int = 1_000) -> float:
         """ Repeatedly run and return the average quality above the nth percentile """
         count = round(bound * (1 - nth / 100))
-        top = nlargest(count, (self.run().quality() for _ in range(bound)))
+        top = nlargest(count, (sol.quality() for sol in self.runs(bound)))
         return sum(top) / count
 
     @property
