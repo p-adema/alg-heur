@@ -118,3 +118,7 @@ class Runner:
         count = round(bound * (1 - nth / 100))
         top = nlargest(count, (self.run().quality() for _ in range(bound)))
         return sum(top) / count
+
+    @property
+    def name(self):
+        return self.alg.name

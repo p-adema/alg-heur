@@ -5,6 +5,7 @@
 /src/machine_learning
 !/results/
 /results/training/*
+/results/statistics/*
 !/README.md
 !/requirements.txt
 !/.gitignore

@@ -9,6 +9,7 @@ from src.classes.lines import Network
 
 class Algorithm(abc.ABC):
     """ Base class for all Algorithm types """
+    name: str = 'base'
 
     def __init__(self, base: Network, **options):
         self.active = base

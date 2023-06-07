@@ -24,4 +24,4 @@ std_hc = rr(hill_climb.HillClimb, backtracking=True, clean=False)
 std_la = rr(look_ahead.LookAhead, backtracking=False, clean=False, depth=1)
 std_sa = rr(sim_annealing.SimulatedAnnealing, backtracking=True, clean=False, iter_cap=500)
 
-default_runner = std_gr
+default_runner: runner.Runner = std_gr

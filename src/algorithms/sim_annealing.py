@@ -13,6 +13,7 @@ from src.classes.lines import Network
 class SimulatedAnnealing(Algorithm):
     """ Iterative algorithm type implementing simulated annealing,
         transitions from semi-random to hill-climbing              """
+    name = 'sa'
 
     # Scalar constant influencing how random the algorithm should start off
     schedule = 10

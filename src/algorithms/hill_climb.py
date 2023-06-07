@@ -11,6 +11,7 @@ from src.classes.lines import Network
 class HillClimb(Algorithm):
     """ Hill climbing algorithm type, tries the first
         score-increasing move it finds (randomly ordered) """
+    name = 'hc'
 
     def __init__(self, base: Network, **options):
         super().__init__(base, **options)

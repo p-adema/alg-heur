@@ -12,6 +12,7 @@ from src.classes.rails import Station
 
 class Greedy(Algorithm):
     """ Greedy constructive algorithm type, avoids overlap """
+    name = 'gr'
 
     def __init__(self, base: Network, **options):
         super().__init__(base, **options)

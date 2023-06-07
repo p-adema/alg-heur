@@ -11,6 +11,7 @@ from src.classes.lines import Network
 class Random(Algorithm):
     """ Constructive algorithm that repeatedly takes a random action.
         First starts all lines, then expands them                     """
+    name = 'ra'
 
     def __init__(self, base: Network, **options):
         super().__init__(base, **options)

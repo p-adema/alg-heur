@@ -8,6 +8,7 @@ from src.classes.lines import Network
 class LookAhead(Algorithm):
     """ Best first iterative algorithm, ranks moves based on
         highest score achievable with 'depth' further moves  """
+    name = 'la'
 
     def __next__(self) -> Network:
         line_cap = self.options.get('line_cap', 7)
