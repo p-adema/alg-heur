@@ -64,7 +64,7 @@ def station_map(alg: str):
             result = (score / base - 1) * 5 + 1 + (0.2 if score > base else -0.4)
             marker = '+' if score > base else '_'
             axes.scatter(station.E, station.N, color=hue(result), marker=marker, s=100, zorder=2)
-
+    axes.set_title('Effects of dropping stations')
     plt.show()
 
 
@@ -87,8 +87,13 @@ def rail_map(alg: str, action: str):
             axes.plot((s_a.E, s_b.E), (s_a.N, s_b.N),
                       color=hue(result), linewidth=2, linestyle=style, zorder=-1)
 
+    axes.set_title(f'Effects of {action}ping rails')
     plt.show()
 
 
 if __name__ == '__main__':
-    rail_map('gr', 'swap')
+    alg = 'gr'
+
+    station_map(alg)
+    rail_map(alg, 'drop')
+    rail_map(alg, 'swap')

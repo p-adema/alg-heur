@@ -4,21 +4,18 @@
 
 from __future__ import annotations
 
+import multiprocessing as mp
 from functools import partial
 from heapq import nlargest
 from itertools import combinations, chain
 from os.path import isfile
-import multiprocessing as mp
 from typing import Generator, Iterable, Callable
 
 from src.defaults import default_runner as runner, default_infra
 
 PERCENTILE = 90
-PRECISION = 500
-THREADS = 10
-
-STATION_HEADER = "name,quality\n"
-RAIL_HEADER = "name_a,name_b,quality\n"
+PRECISION = 1_000
+THREADS = 8
 
 
 def safety_check(path: str) -> bool:
@@ -34,7 +31,7 @@ def safety_check(path: str) -> bool:
 
 def drop_station(dropped: str | None = None) -> float:
     """ Measure the effect of dropping a station """
-    measurement = dropped if dropped is not None else 'base'
+    measurement = dropped if dropped is not None else 'baseline'
     print('Measuring', measurement)
     count = PRECISION
     if dropped is not None:
@@ -74,22 +71,23 @@ def drop_all_stations() -> None:
     if not safety_check(path):
         return
 
+    targets = list(chain(((None,),),
+                         ((name,) for name in default_infra.names.keys())))
+
     args = [(drop_station, ch) for ch in
-            (chunk(((name,) for name in default_infra.names.keys()), THREADS))]
+            (chunk(targets, THREADS))]
 
     print('Testing all station drops')
-    with mp.Pool(10) as pool:
-        pool: mp.Pool
+    with mp.Pool(THREADS) as pool:
         ret = pool.map(_worker, args)
     res = {}
     for d in ret:
         res.update(d)
 
     with open(path, 'w', encoding='utf-8') as file:
-        file.write(STATION_HEADER)
-        # file.write(f',{drop_station()}\n')
-        for name in default_infra.names.keys():
-            file.write(f'{name},{res[(name,)]}\n')
+        file.write("name,quality\n")
+        for name in targets:
+            file.write(f'{name[0]},{res[name]}\n')
 
 
 def drop_or_swap_rail(action: str, name_a: str, name_b: str):
@@ -139,12 +137,25 @@ def _drop_or_swap_all_rails(action: str) -> None:
         return
 
     print(f'Testing all rail {action}s')
+
+    targets = list(chain((('control', '', ''),),
+                         ((action, n_a, n_b) for n_a, n_b
+                          in rail_names())))
+
+    args = [(drop_or_swap_rail, ch) for ch in
+            (chunk(targets, THREADS))]
+
+    with mp.Pool(THREADS) as pool:
+        ret = pool.map(_worker, args)
+    res = {}
+    for d in ret:
+        res.update(d)
+
     with open(path, 'w', encoding='utf-8') as file:
-        file.write(RAIL_HEADER)
-        file.write(f",,{drop_or_swap_rail('control', '', '')}\n")
-        for name_a, name_b in rail_names():
-            file.write(f"{name_a},{name_b},"
-                       f"{drop_or_swap_rail(action, name_a, name_b)}\n")
+        file.write("name_a,name_b,quality\n")
+        for target in targets:
+            _, name_a, name_b = target
+            file.write(f"{name_a},{name_b},{res[target]}\n")
 
 
 drop_all_rails = partial(_drop_or_swap_all_rails, 'drop')
