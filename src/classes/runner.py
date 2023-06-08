@@ -97,12 +97,14 @@ class Runner:
         for sol in self.runs():
             if sol.fully_covered():
                 return sol
+        raise ValueError  # Typechecker
 
     def run_till_optimal(self) -> Network:
         """ Repeatedly run until a fully-covering, non-overlapping solution is found """
         for sol in self.runs():
             if sol.is_optimal():
                 return sol
+        raise ValueError  # Typechecker
 
     def best(self, bound: int = 1_000) -> Network:
         """ Repeatedly run until optimal or bound and return the highest scoring network """

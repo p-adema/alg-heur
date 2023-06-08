@@ -48,7 +48,7 @@ def hue(percentage: float) -> str:
 
 def station_map(alg: str):
     """ Create a visualisation of the effects of station dropout """
-    fig, axes = plt.subplots(dpi=DPI)
+    _, axes = plt.subplots(dpi=DPI)
     for s_a, link_dict in default_infra.connections.items():
         for s_b in link_dict:
             axes.plot((s_a.E, s_b.E), (s_a.N, s_b.N), color='black',
@@ -95,7 +95,7 @@ def rail_map(alg: str, action: str):
 
 
 if __name__ == '__main__':
-    alg = 'gr'
-    station_map(alg)
-    rail_map(alg, 'drop')
-    rail_map(alg, 'swap')
+    ALG = 'gr'
+    station_map(ALG)
+    rail_map(ALG, 'drop')
+    rail_map(ALG, 'swap')

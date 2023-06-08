@@ -44,19 +44,21 @@ def drop_station(dropped: str | None = None) -> float:
     return runner.percentile(PERCENTILE, count)
 
 
-def chunk(it: Iterable, count: int) -> list[list]:
+def chunk(iterable: Iterable, count: int) -> list[list]:
     """ Split 'it' as evenly as possible into 'count' lists """
-    li = list(it)
+    full = list(iterable)
     chunked = []
-    size, rem = divmod(len(li), count)
-    for num, idx in enumerate(range(0, len(li) // count * count, size)):
+    size, rem = divmod(len(full), count)
+    for num, idx in enumerate(range(0, len(full) // count * count, size)):
         offset = min(num, rem) + idx
         add = (1 if num < rem else 0) + size
-        chunked.append(li[offset: offset + add])
+        chunked.append(full[offset: offset + add])
     return chunked
 
 
 def _worker(boilerplate: tuple[Callable, list]) -> dict:
+    """ Execute a task for all arguments in the list, then
+        return a mapping from arguments to return values   """
     task, arglist = boilerplate
     res = {}
     for args in arglist:
@@ -81,8 +83,8 @@ def drop_all_stations() -> None:
     with mp.Pool(THREADS) as pool:
         ret = pool.map(_worker, args)
     res = {}
-    for d in ret:
-        res.update(d)
+    for part in ret:
+        res.update(part)
 
     with open(path, 'w', encoding='utf-8') as file:
         file.write("name,quality\n")
@@ -91,18 +93,21 @@ def drop_all_stations() -> None:
 
 
 def drop_or_swap_rail(action: str, name_a: str, name_b: str):
+    """ Measure the effect of dropping or swapping a rail, where
+        'action' is whether to drop or swap, and the rail is between
+        the two stations given by name                               """
     measurement = f'{name_a:20} <-> {name_b:20}' if action != 'control' else 'base'
     print('Measuring', measurement)
     if action == 'control':
         infra = default_infra
         runner.infra = infra
         return runner.percentile(PERCENTILE, PRECISION * 3)
-    elif action == 'drop':
+    if action == 'drop':
         infra = default_infra.copy()
         infra.drop_rails(pairs=[(name_a, name_b)])
         runner.infra = infra
         return runner.percentile(PERCENTILE, PRECISION)
-    elif action != 'swap':
+    if action != 'swap':
         raise ValueError("Action should be 'control', 'drop' or 'swap'")
 
     # The code for swap is a little odd, because if we ran it the same as the
@@ -148,8 +153,8 @@ def _drop_or_swap_all_rails(action: str) -> None:
     with mp.Pool(THREADS) as pool:
         ret = pool.map(_worker, args)
     res = {}
-    for d in ret:
-        res.update(d)
+    for part in ret:
+        res.update(part)
 
     with open(path, 'w', encoding='utf-8') as file:
         file.write("name_a,name_b,quality\n")
