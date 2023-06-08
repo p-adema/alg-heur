@@ -48,7 +48,7 @@ def hue(percentage: float) -> str:
 
 def station_map(alg: str):
     """ Create a visualisation of the effects of station dropout """
-    _, axes = plt.subplots(dpi=DPI)
+    fig, axes = plt.subplots(dpi=DPI)
     for s_a, link_dict in default_infra.connections.items():
         for s_b in link_dict:
             axes.plot((s_a.E, s_b.E), (s_a.N, s_b.N), color='black',
@@ -64,7 +64,8 @@ def station_map(alg: str):
             result = (score / base - 1) * 5 + 1 + (0.2 if score > base else -0.4)
             marker = '+' if score > base else '_'
             axes.scatter(station.E, station.N, color=hue(result), marker=marker, s=100, zorder=2)
-    axes.set_title('Effects of dropping stations')
+    plt.suptitle('Effects of dropping stations')
+    plt.title('+ means score improved, - means score decreased', fontsize='small')
     plt.show()
 
 
@@ -87,13 +88,14 @@ def rail_map(alg: str, action: str):
             axes.plot((s_a.E, s_b.E), (s_a.N, s_b.N),
                       color=hue(result), linewidth=2, linestyle=style, zorder=-1)
 
-    axes.set_title(f'Effects of {action}ping rails')
+    plt.suptitle(f'Effects of {action}ping rails')
+    plt.title('dashed means score improved, dotted means score decreased', fontsize='small')
+
     plt.show()
 
 
 if __name__ == '__main__':
     alg = 'gr'
-
     station_map(alg)
     rail_map(alg, 'drop')
     rail_map(alg, 'swap')
