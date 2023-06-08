@@ -8,12 +8,14 @@ from functools import partial
 from heapq import nlargest
 from itertools import combinations, chain
 from os.path import isfile
-from typing import Generator
+import multiprocessing as mp
+from typing import Generator, Iterable, Callable
 
 from src.defaults import default_runner as runner, default_infra
 
 PERCENTILE = 90
 PRECISION = 500
+THREADS = 10
 
 STATION_HEADER = "name,quality\n"
 RAIL_HEADER = "name_a,name_b,quality\n"
@@ -45,6 +47,26 @@ def drop_station(dropped: str | None = None) -> float:
     return runner.percentile(PERCENTILE, count)
 
 
+def chunk(it: Iterable, count: int) -> list[list]:
+    """ Split 'it' as evenly as possible into 'count' lists """
+    li = list(it)
+    chunked = []
+    size, rem = divmod(len(li), count)
+    for num, idx in enumerate(range(0, len(li) // count * count, size)):
+        offset = min(num, rem) + idx
+        add = (1 if num < rem else 0) + size
+        chunked.append(li[offset: offset + add])
+    return chunked
+
+
+def _worker(boilerplate: tuple[Callable, list]) -> dict:
+    task, arglist = boilerplate
+    res = {}
+    for args in arglist:
+        res[args] = task(*args)
+    return res
+
+
 def drop_all_stations() -> None:
     """ Measure the effects of dropping stations,
         one by one for all stations                """
@@ -52,12 +74,22 @@ def drop_all_stations() -> None:
     if not safety_check(path):
         return
 
+    args = [(drop_station, ch) for ch in
+            (chunk(((name,) for name in default_infra.names.keys()), THREADS))]
+
     print('Testing all station drops')
+    with mp.Pool(10) as pool:
+        pool: mp.Pool
+        ret = pool.map(_worker, args)
+    res = {}
+    for d in ret:
+        res.update(d)
+
     with open(path, 'w', encoding='utf-8') as file:
         file.write(STATION_HEADER)
-        file.write(f',{drop_station()}\n')
+        # file.write(f',{drop_station()}\n')
         for name in default_infra.names.keys():
-            file.write(f'{name},{drop_station(name)}\n')
+            file.write(f'{name},{res[(name,)]}\n')
 
 
 def drop_or_swap_rail(action: str, name_a: str, name_b: str):
@@ -91,6 +123,7 @@ def drop_or_swap_rail(action: str, name_a: str, name_b: str):
 
 
 def rail_names() -> Generator[tuple[str, str]]:
+    """ Generate all valid rails in the form of station name pairs """
     for stn_a, stn_b in combinations(default_infra.stations, 2):
         if stn_b in default_infra.connections[stn_a]:
             yield stn_a.name, stn_b.name
@@ -118,4 +151,4 @@ drop_all_rails = partial(_drop_or_swap_all_rails, 'drop')
 swap_all_rails = partial(_drop_or_swap_all_rails, 'swap')
 
 if __name__ == '__main__':
-    swap_all_rails()
+    drop_all_stations()
