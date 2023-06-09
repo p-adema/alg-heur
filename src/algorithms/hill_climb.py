@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Generator
 
-from src.classes.algorithm import Algorithm
+from src.classes.abstract import Algorithm
 from src.classes.lines import Network
 
 

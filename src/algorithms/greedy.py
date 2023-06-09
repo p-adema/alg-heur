@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import random
 
-from src.classes.algorithm import Algorithm
+from src.classes.abstract import Algorithm
 from src.classes.lines import Network
 from src.classes.moves import ExtensionMove
 from src.classes.rails import Station

@@ -6,7 +6,7 @@ from __future__ import annotations
 from math import exp
 from random import sample, random, choice
 
-from src.classes.algorithm import Algorithm
+from src.classes.abstract import Algorithm
 from src.classes.lines import Network
 
 

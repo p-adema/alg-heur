@@ -8,6 +8,6 @@ from src.graphs.map import draw_network
 if __name__ == '__main__':
     solution = default_runner.run()
 
-    print(f'Best score found: (overlap {solution.overtime}, {len(solution.data)} lines)\n')
+    print(f'Best score found: (overlap {solution.overtime}, {len(solution.lines)} lines)\n')
     print(solution.to_output())
     draw_network(solution)

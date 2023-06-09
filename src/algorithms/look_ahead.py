@@ -1,7 +1,7 @@
 """ Best-first iterative algorithm, can look ahead in state space """
 from __future__ import annotations
 
-from src.classes.algorithm import Algorithm
+from src.classes.abstract import Algorithm
 from src.classes.lines import Network
 
 

@@ -4,7 +4,7 @@
 
 from __future__ import annotations
 
-import multiprocessing as mp
+from multiprocessing import Pool
 from functools import partial
 from heapq import nlargest
 from itertools import combinations, chain
@@ -80,7 +80,7 @@ def drop_all_stations() -> None:
             (chunk(targets, THREADS))]
 
     print('Testing all station drops')
-    with mp.Pool(THREADS) as pool:
+    with Pool(THREADS) as pool:
         ret = pool.map(_worker, args)
     res = {}
     for part in ret:
@@ -150,7 +150,7 @@ def _drop_or_swap_all_rails(action: str) -> None:
     args = [(drop_or_swap_rail, ch) for ch in
             (chunk(targets, THREADS))]
 
-    with mp.Pool(THREADS) as pool:
+    with Pool(THREADS) as pool:
         ret = pool.map(_worker, args)
     res = {}
     for part in ret:
@@ -168,3 +168,5 @@ swap_all_rails = partial(_drop_or_swap_all_rails, 'swap')
 
 if __name__ == '__main__':
     drop_all_stations()
+    drop_all_rails()
+    swap_all_rails()

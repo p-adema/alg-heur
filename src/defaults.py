@@ -12,10 +12,15 @@ LINE_CAP = 13
 
 default_infra = rails.Rails()
 default_infra.load('data/positions.csv', 'data/connections.csv')
+if 'Utrecht Centraal' in default_infra.names:
+    drop_name = 'Utrecht Centraal'
+else:
+    drop_name = 'Amsterdam Centraal'
+
 dropped_infra = default_infra.copy()
 dropped_infra.drop_stations(names=['Utrecht Centraal'])
 
-rr = partial(runner.Runner, infra=dropped_infra,
+rr = partial(runner.Runner, infra=default_infra,
              dist_cap=DIST_CAP, line_cap=LINE_CAP)
 
 std_rd = rr(rand.Random, backtracking=True, clean=True)

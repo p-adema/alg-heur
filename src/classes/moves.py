@@ -2,25 +2,12 @@
 
 from __future__ import annotations
 
-from abc import abstractmethod
-from typing import Protocol, NamedTuple, TYPE_CHECKING
+from typing import NamedTuple, TYPE_CHECKING
 
 if TYPE_CHECKING:
     # Prevent import loop
     from src.classes.lines import Network, TrainLine
     from src.classes.rails import Station
-
-
-class Move(Protocol):
-    """ Represents a possible move in state space """
-
-    @abstractmethod
-    def commit(self) -> bool:
-        """ Commit this move """
-
-    @abstractmethod
-    def rebind(self, net: Network) -> Move:
-        """ Rebind this move to the given network """
 
 
 class ExtensionMove(NamedTuple):

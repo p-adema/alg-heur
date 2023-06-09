@@ -13,7 +13,7 @@ from heapq import nlargest
 from typing import Type, Callable, Generator
 
 from src.algorithms import greedy
-from src.classes.algorithm import Algorithm
+from src.classes.abstract import Algorithm
 from src.classes.lines import Network, NetworkState
 from src.classes.rails import Rails
 

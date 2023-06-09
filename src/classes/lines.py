@@ -4,10 +4,13 @@ from __future__ import annotations
 import itertools
 from collections import deque
 from copy import copy
-from typing import Generator, Any, NamedTuple, Iterator
+from typing import Generator, Any, NamedTuple, Iterator, TYPE_CHECKING
 
-from src.classes.moves import Move, ExtensionMove, RetractionMove, RemovalMove, AdditionMove
 from src.classes.rails import Station, Rails
+from src.classes.moves import ExtensionMove, RetractionMove, RemovalMove, AdditionMove
+
+if TYPE_CHECKING:
+    from src.classes.abstract import Move
 
 
 class TrainLine:
@@ -27,7 +30,7 @@ class TrainLine:
         self.dist_cap = dist_cap
         self.index = index
 
-    def extend(self, origin: Station, destination: Station, is_new: bool = None) -> bool:
+    def extend(self, origin: Station, destination: Station, is_new: bool | None = None) -> bool:
         """
         Add a station to the line
         :param origin: Station to extend from, must be head or tail of line
@@ -91,8 +94,8 @@ class TrainLine:
         # print('     ', self.network, self.network.total_links, self)
         return True
 
-    def gen_extensions(self, origin: Station, back: Station = None) \
-            -> Generator[ExtensionMove]:
+    def gen_extensions(self, origin: Station,
+                       back: Station | None = None) -> Generator[ExtensionMove]:
         """
         Generate individual extensions from this line
         :param origin: Either the head or tail of the line
@@ -301,7 +304,7 @@ class Network:
 
 class NetworkState(NamedTuple):
     """ A class compactly representing a single state of a network """
-    lines: tuple[tuple[Station]]
+    lines: tuple[tuple[Station, ...]]
     infra: Rails
     score: float
 

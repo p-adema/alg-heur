@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from random import sample
 
-from src.classes.algorithm import Algorithm
+from src.classes.abstract import Algorithm
 from src.classes.lines import Network
 
 
@@ -20,7 +20,6 @@ class Random(Algorithm):
 
     def add_lines(self):
         """ Add 'line_cap' lines to the active network """
-        self.active: Network
         for addition in sample(list(self.active.additions()), self.line_cap):
             addition.commit()
 
