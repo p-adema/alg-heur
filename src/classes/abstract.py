@@ -1,4 +1,4 @@
-""" Base type definitions for various types """
+""" Base type definitions for various types and objects """
 
 from __future__ import annotations
 

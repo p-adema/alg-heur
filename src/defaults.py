@@ -10,15 +10,20 @@ from src.classes import rails, runner
 DIST_CAP = 180
 LINE_CAP = 13
 
+INFRA_FILES = [('data/positions_small.csv', 'data/connections_small.csv'),
+               ('data/positions.csv', 'data/connections.csv')]
+INFRA_LARGE = True
+
 default_infra = rails.Rails()
-default_infra.load('data/positions.csv', 'data/connections.csv')
-if 'Utrecht Centraal' in default_infra.names:
-    drop_name = 'Utrecht Centraal'
+default_infra.load(*INFRA_FILES[INFRA_LARGE])
+
+if INFRA_LARGE:
+    DROPPED_STATION = 'Utrecht Centraal'
 else:
-    drop_name = 'Amsterdam Centraal'
+    DROPPED_STATION = 'Amsterdam Centraal'
 
 dropped_infra = default_infra.copy()
-dropped_infra.drop_stations(names=['Utrecht Centraal'])
+dropped_infra.drop_stations(names=[DROPPED_STATION])
 
 rr = partial(runner.Runner, infra=default_infra,
              dist_cap=DIST_CAP, line_cap=LINE_CAP)
