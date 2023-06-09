@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from abc import abstractmethod, ABC
-from typing import Protocol, Type, Callable
+from typing import Protocol, TypeAlias, Callable
 
 from src.classes.lines import Network
 
@@ -11,7 +11,7 @@ from src.classes.lines import Network
 class Algorithm(ABC):
     """ Base class for all Algorithm types """
 
-    # Two letter, lowercase identifier for algorithms
+    # Lowercase identifier for algorithms
     name: str = 'ba'
 
     def __init__(self, base: Network, **options):
@@ -37,8 +37,8 @@ class Move(Protocol):
         """ Rebind this move to the given network """
 
 
-Heuristic = Type[Callable[[Network, Move], float]]
-#           (CurrentNetwork, NextMove) -> Evaluation
+# (CurrentNetwork, NextMove) -> Evaluation
+Heuristic: TypeAlias = Callable[[Network, Move], float]
 
-Normaliser = Type[Callable[[list[float]], list[float]]]
-#            (Evaluations) -> ProbabilityDistribution
+# (Evaluations) -> AdjustedEvaluations
+Adjuster: TypeAlias = Callable[[list[float]], list[float]]

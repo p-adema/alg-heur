@@ -1,8 +1,12 @@
 # Algorithms
 This folder contains the algorithms implemented for solving the problem
 
-* `rand.py` is a random constructive algorithm
-* `greedy.py` is a simple, greedy, constructive algorithm
-* `look_ahead` is a best-first iterative algorithm that explores future possibilities
-* `hill_climb` is a simple iterative hill climbing algorithm that takes the first good move
-* `sim_annealing` is an iterative algorithm that transitions from semi-random action to hill climbing
+* `standard.py` contains implementations for standard algorithms
+  * `Random` is a random constructive algorithm
+  * `Greedy` is a simple, greedy, constructive algorithm
+  * `HillClimb` is a simple iterative hill climbing algorithm that takes the first good move
+  * `LookAhead` is a best-first iterative algorithm that explores future possibilities
+  * `SimulatedAnnealing` is an iterative algorithm that transitions from semi-random action to hill climbing
+* `generic.py` contains classes for generic algorithms that evaluate heuristics
+* `heuristics.py` contains heuristics for generic algorithms
+* `adjusters.py` contains adjusters for heuristic weight distributions

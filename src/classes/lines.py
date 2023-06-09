@@ -209,6 +209,12 @@ class Network:
             return itertools.chain(standard, self.additions())
         return standard
 
+    def constructions(self, addition: bool = True) -> Iterator[Move]:
+        """ Get an iterator of all constructive moves """
+        if not addition:
+            return self.extensions()
+        return itertools.chain(self.extensions(), self.additions())
+
     def coverage(self):
         """ The fraction of the rails covered """
         return self.total_links / self.rails.links

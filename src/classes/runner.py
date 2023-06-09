@@ -12,7 +12,7 @@ from __future__ import annotations
 from heapq import nlargest
 from typing import Type, Callable, Generator
 
-from src.algorithms import greedy
+from src.algorithms import standard
 from src.classes.abstract import Algorithm
 from src.classes.lines import Network, NetworkState
 from src.classes.rails import Rails
@@ -49,7 +49,7 @@ class Runner:
         if self.clean:
             base = Network(self.infra, self.dist_cap)
         else:
-            base = Runner(greedy.Greedy, self.infra,
+            base = Runner(standard.Greedy, self.infra,
                           dist_cap=self.dist_cap, line_cap=self.line_cap).run()
         alg_inst = self.alg(base, **self.options)
         if self.options.get('backtracking', True):
