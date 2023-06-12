@@ -41,7 +41,7 @@ class Rails:
 
         # max_duration is *not* updated when rails are modified:
         #   it serves as an upper bound to rail length
-        self.max_duration = 0
+        self.min_max = [math.inf, -math.inf]
 
         self.speed: float = -1
         self.modifications: list[RailModification] = []
@@ -72,7 +72,8 @@ class Rails:
                 self.connections[station_b][station_a] = duration
                 self.links += 1
                 sum_speed += self._calc_speed(station_a, station_b, duration)
-                self.max_duration = max(self.max_duration, duration)
+                self.min_max[0] = min(self.min_max[0], duration)
+                self.min_max[1] = max(self.min_max[1], duration)
 
         self.stations = tuple(stations)
         self.speed = sum_speed / self.links
@@ -84,7 +85,7 @@ class Rails:
         new.connections = {s: c.copy() for s, c in self.connections.items()}
         new.names = self.names
         new.links = self.links
-        new.max_duration = self.max_duration
+        new.min_max = self.min_max
         new.speed = self.speed
         return new
 

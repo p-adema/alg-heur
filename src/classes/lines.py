@@ -295,12 +295,17 @@ class Network:
         while True:
             yield self.copy()
 
-    def state_neighbours(self, line_cap: int, stationary: bool = False) \
-            -> Generator[Network]:
+    def state_neighbours(self, line_cap: int, stationary: bool = False,
+                         constructive: bool = False) -> Generator[Network]:
         """ Yield all state neighbours from this network, including
-            this network if stationary is True                      """
+            this network if stationary is True,
+            without retractions if constructive is true             """
         addition = len(self.lines) < line_cap
-        for move, net in zip(self.moves(addition), self.pivot()):
+        if not constructive:
+            moves = self.moves(addition)
+        else:
+            moves = self.constructions(addition)
+        for move, net in zip(moves, self.pivot()):
             move.rebind(net).commit()
             net.move = move
             yield net

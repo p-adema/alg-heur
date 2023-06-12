@@ -72,6 +72,9 @@ class AdditionMove(NamedTuple):
         """ Rebind this addition to a different network """
         return self._replace(network=net)
 
+    def degree(self) -> int:
+        return sum(not bound for bound in self.network.link_count[self.root])
+
 
 if TYPE_CHECKING:
     # Pylint doesn't see NamedTuple._replace

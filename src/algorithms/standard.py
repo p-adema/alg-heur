@@ -3,13 +3,16 @@
 from __future__ import annotations
 
 from math import exp
-from random import sample, random, choice
+from random import sample, random, choice, shuffle
 from typing import Generator
 
 from src.classes.abstract import Algorithm
 from src.classes.lines import Network
-from src.classes.moves import ExtensionMove
+from src.classes.moves import ExtensionMove, AdditionMove
 from src.classes.rails import Station
+
+from functools import partial
+from src.algorithms.heuristics import greedy
 
 
 class Random(Algorithm):
@@ -45,7 +48,7 @@ class Greedy(Algorithm):
         self.infra = base.rails
         self.line_cap = options.get('line_cap', 7)
         self.optimal = options.get('optimal', False)
-        self.longest_rail = self.infra.max_duration
+        self.longest_rail = self.infra.min_max[1]
 
     def _sort_key(self, extension: ExtensionMove):
         """
@@ -57,8 +60,8 @@ class Greedy(Algorithm):
 
     def next_move(self) -> ExtensionMove | None:
         """
-        Constructively generate extensions to a network
-        :return: ExtensionMoves, or None if there are none remaining
+        Constructively generate an extension to a network
+        :return: ExtensionMove, or None if there are none remaining
         """
         while True:
             try:
@@ -66,32 +69,33 @@ class Greedy(Algorithm):
             except ValueError:
                 if len(self.active.lines) == self.line_cap:
                     return None
-                self.active.add_line(self.select_root())
+                add = self.select_root()
+                if add is None:
+                    return None
+                add.commit()
                 continue
 
             if mov.new:
                 return mov
             if len(self.active.lines) < self.line_cap:
-                self.active.add_line(self.select_root())
+                add = self.select_root()
+                if add is not None:
+                    add.commit()
+                    continue
 
-            elif not self.optimal:
+            if not self.optimal:
                 return mov
-            else:
-                return None
+            return None
 
-    def select_root(self) -> Station:
+    def select_root(self) -> AdditionMove | None:
         """ Selects a root to start a new line from, preferring roots
             with an odd amount of links not yet in the network """
-        root = None
-        stations = sample(self.infra.stations, len(self.infra.stations))
-        for station in stations:
-            free_links = sum(not connected for connected in
-                             self.active.link_count[station].values())
-            if free_links:
-                root = station
-
-                if free_links % 1:
-                    break
+        stations = list(self.active.additions())
+        shuffle(stations)
+        root = stations[0]
+        for root in stations:
+            if not root.degree() % 2:
+                break
 
         return root
 

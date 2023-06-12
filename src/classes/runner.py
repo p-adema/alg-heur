@@ -2,14 +2,22 @@
 
 Optional parameter list:
     clean: Whether a random solution should not be generated as base
-    backtracking: Whether backtracking should be permitted, default True
-    state_hook: A callable to log the current state, default disabled
-    state_hook_out: A TextIO handle for a file for the hook to output to
+    stations: Whether, on a clean run, lines should be pre-selected
+        'none' for no allocation
+        'random' for random allocation
+        'degree' for odd degree preference
+
+    Loop options, all default disabled:
+    (note that enabling any results in a performance penalty)
+        stop_backtracking: Whether backtracking should be prevented
+        track_best: Whether the best intermediate state should be tracked
+        state_hook: A callable to log the current state
 """
 
 from __future__ import annotations
 
 from heapq import nlargest
+from random import sample
 from typing import Type, Callable, Generator
 
 from src.algorithms import standard
@@ -48,39 +56,69 @@ class Runner:
         """ Run the algorithm once, returning the final network """
         if self.clean:
             base = Network(self.infra, self.dist_cap)
+            self._alloc_stations(base)
         else:
             base = Runner(standard.Greedy, self.infra,
                           dist_cap=self.dist_cap, line_cap=self.line_cap).run()
         alg_inst = self.alg(base, **self.options)
-        if self.options.get('backtracking', True):
-            return self._run_full(alg_inst)
-        return self._run_no_backtrack(alg_inst)
+        return self._run_loop(alg_inst)
 
-    def _run_full(self, alg_inst: Algorithm) -> Network:
-        """ Run the given instance without watching for backtracking """
-        intermediate = alg_inst.active
-        sh_buffer = None
-        if self.state_hook is not None and 'state_hook_out' in self.options:
-            sh_buffer = self.options['state_hook_out']
-        for intermediate in alg_inst:
-            if sh_buffer is not None:
-                self.state_hook(intermediate, sh_buffer)
-        return intermediate
+    def _alloc_stations(self, net: Network) -> None:
+        mode = self.options.get('stations', 'none')
+        if mode == 'none':
+            return
+        if mode == 'random':
+            # Assumption: line_cap <= station count
+            for root in sample(net.rails.stations, self.line_cap):
+                net.add_line(root)
+            return
+        if mode != 'degree':
+            raise ValueError("Station allocation method must be one"
+                             " of 'none', 'random' or 'degree'")
+        odd, even = [], []
+        for station, links in net.link_count.items():
+            if len(links) % 2:
+                odd.append(station)
+            else:
+                even.append(station)
+        for root in sample(odd, min(self.line_cap, len(odd))):
+            net.add_line(root)
+        if self.line_cap <= len(odd):
+            return
+        for root in sample(even, self.line_cap - len(odd)):
+            net.add_line(root)
 
-    def _run_no_backtrack(self, alg_inst: Algorithm) -> Network:
-        """ Run the given instance, returning if it backtracks """
-        visited = set(NetworkState.from_network(alg_inst.active))
+    def _run_loop(self, alg_inst: Algorithm) -> Network:
+        """ Run the given instance with the runner options """
         intermediate = alg_inst.active
-        sh_buffer = None
-        if self.state_hook is not None and 'state_hook_out' in self.options:
-            sh_buffer = self.options['state_hook_out']
+
+        visited = None
+        if self.options.get('stop_backtracking', False):
+            visited = set(NetworkState.from_network(alg_inst.active))
+        best = None
+        if self.options.get('track_best', False):
+            best = NetworkState.from_network(intermediate)
+        hook = None
+        if self.state_hook is not None:
+            hook = self.state_hook
+
+        action = visited or best or hook
+
         for intermediate in alg_inst:
-            if sh_buffer is not None:
-                self.state_hook(intermediate, sh_buffer)
-            state = NetworkState.from_network(intermediate)
-            if state in visited:
-                break
-            visited.add(state)
+            if action:
+                state = NetworkState.from_network(intermediate)
+
+                if visited:
+                    if state in visited:
+                        break
+                    visited.add(state)
+                if best:
+                    best = max(best, state, key=lambda s: s.score)
+                if hook:
+                    hook(state)
+
+        if best:
+            return Network.from_state(best)
         return intermediate
 
     def runs(self, bound: int | None = None) -> Generator[Network]:

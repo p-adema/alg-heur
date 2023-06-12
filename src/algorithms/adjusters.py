@@ -3,9 +3,9 @@
 from math import exp
 
 
-def none(weights: list[float]) -> list[float]:
+def relu(weights: list[float]) -> list[float]:
     """ Makes no adjustments """
-    return weights
+    return [max(0., w) for w in weights]
 
 
 def argmax(weights: list[float]) -> list[float]:
