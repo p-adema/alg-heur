@@ -161,4 +161,5 @@ class Runner:
     @property
     def name(self):
         """ Get the name of the assigned algorithm """
-        return self.alg.name
+        tag = f'-{self.options["tag"]}' if 'tag' in self.options else ''
+        return self.alg.name + tag

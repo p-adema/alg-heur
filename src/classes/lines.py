@@ -6,8 +6,8 @@ from collections import deque
 from copy import copy
 from typing import Generator, Any, NamedTuple, Iterator, TYPE_CHECKING
 
-from src.classes.rails import Station, Rails
 from src.classes.moves import ExtensionMove, RetractionMove, RemovalMove, AdditionMove
+from src.classes.rails import Station, Rails
 
 if TYPE_CHECKING:
     from src.classes.abstract import Move
@@ -54,6 +54,8 @@ class TrainLine:
         self.network.link_count[destination][origin] += 1
         if is_new:
             self.network.total_links += 1
+            self.network.free_degree[origin] -= 1
+            self.network.free_degree[destination] -= 1
         else:
             self.network.overtime += ex_duration
         self.duration += ex_duration
@@ -72,8 +74,6 @@ class TrainLine:
         """
         removed = self.stations.pop() if from_end else self.stations.popleft()
         remaining = self.stations[-1] if from_end else self.stations[0]
-        # print('Retraction on', self, id(self.network))
-        # print('     Before:', remaining, removed, self.network.link_count[remaining][removed])
         try:
             rem_duration = self.rails[remaining][removed]
             self.network.link_count[remaining][removed] -= 1
@@ -82,16 +82,15 @@ class TrainLine:
             print("Warning: TrainLine improperly constructed")
             return False
         self.duration -= rem_duration
-        # print('     After:', remaining, removed, self.network.link_count[remaining][removed])
         if is_last is None:
             is_last = not self.network.link_count[remaining][removed]
 
-        # print('     Is_last:', is_last)
         if is_last:
             self.network.total_links -= 1
+            self.network.free_degree[remaining] += 1
+            self.network.free_degree[removed] += 1
         else:
             self.network.overtime -= rem_duration
-        # print('     ', self.network, self.network.total_links, self)
         return True
 
     def gen_extensions(self, origin: Station,
@@ -163,10 +162,13 @@ class Network:
         self.rails = rails
         self._dist_cap = dist_cap
         self.lines: list[TrainLine] = []
-        self.link_count: dict[Station, dict[Station, int]] = {
-            stn_a: {stn_b: 0 for stn_b in stn_conn.keys()}
-            for stn_a, stn_conn in rails.connections.items()
-        }
+        self.link_count: dict[Station, dict[Station, int]] = {}
+        self.free_degree: dict[Station, int] = {}
+
+        for stn_a, stn_conn in rails.connections.items():
+            self.link_count[stn_a] = {stn_b: 0 for stn_b in stn_conn.keys()}
+            self.free_degree[stn_a] = len(stn_conn)
+
         self.total_links = 0
         self.overtime = 0
 
@@ -195,8 +197,8 @@ class Network:
 
     def additions(self) -> Iterator[AdditionMove]:
         """ Get an iterator of all possible line additions """
-        return (AdditionMove(station, self) for station in self.rails.stations
-                if any(not connected for connected in self.link_count[station].values()))
+        return (AdditionMove(station, self) for station, free
+                in self.free_degree.items() if free)
 
     def moves(self, addition: bool = True) -> Iterator[Move]:
         """ Get an iterator of all possible moves """

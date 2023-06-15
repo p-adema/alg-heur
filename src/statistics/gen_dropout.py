@@ -4,29 +4,17 @@
 
 from __future__ import annotations
 
-from multiprocessing import Pool
 from functools import partial
 from heapq import nlargest
 from itertools import combinations, chain
-from os.path import isfile
-from typing import Generator, Iterable, Callable
+from multiprocessing import Pool
+from typing import Generator
 
+import src.statistics.mp_setup as setup
 from src.defaults import default_runner as runner, default_infra
 
 PERCENTILE = 90
 PRECISION = 1_000
-THREADS = 8
-
-
-def safety_check(path: str) -> bool:
-    """ Run a check for if the data already has been generated """
-    if isfile(path):
-        print(f'Datafile already present at {path}')
-        if input("     Overwrite data? (y/N)  ").lower() != 'y':
-            print('     Aborted.')
-            return False
-        print('     Deleted...\n')
-    return True
 
 
 def drop_station(dropped: str | None = None) -> float:
@@ -44,44 +32,22 @@ def drop_station(dropped: str | None = None) -> float:
     return runner.percentile(PERCENTILE, count)
 
 
-def chunk(iterable: Iterable, count: int) -> list[list]:
-    """ Split 'it' as evenly as possible into 'count' lists """
-    full = list(iterable)
-    chunked = []
-    size, rem = divmod(len(full), count)
-    for num, idx in enumerate(range(0, len(full) // count * count, size)):
-        offset = min(num, rem) + idx
-        add = (1 if num < rem else 0) + size
-        chunked.append(full[offset: offset + add])
-    return chunked
-
-
-def _worker(boilerplate: tuple[Callable, list]) -> dict:
-    """ Execute a task for all arguments in the list, then
-        return a mapping from arguments to return values   """
-    task, arglist = boilerplate
-    res = {}
-    for args in arglist:
-        res[args] = task(*args)
-    return res
-
-
 def drop_all_stations() -> None:
     """ Measure the effects of dropping stations,
         one by one for all stations                """
     path = f'results/statistics/{runner.name}_drop_stations.csv'
-    if not safety_check(path):
+    if not setup.safety_check(path):
         return
 
     targets = list(chain(((None,),),
                          ((name,) for name in default_infra.names.keys())))
 
     args = [(drop_station, ch) for ch in
-            (chunk(targets, THREADS))]
+            (setup.chunk(targets, setup.THREADS))]
 
     print('Testing all station drops')
-    with Pool(THREADS) as pool:
-        ret = pool.map(_worker, args)
+    with Pool(setup.THREADS) as pool:
+        ret = pool.map(setup.worker, args)
     res = {}
     for part in ret:
         res.update(part)
@@ -138,7 +104,7 @@ def _drop_or_swap_all_rails(action: str) -> None:
     if action not in ['drop', 'swap']:
         raise ValueError("Action must be either 'drop' or 'swap'")
     path = f'results/statistics/{runner.name}_{action}_rails.csv'
-    if not safety_check(path):
+    if not setup.safety_check(path):
         return
 
     print(f'Testing all rail {action}s')
@@ -148,10 +114,10 @@ def _drop_or_swap_all_rails(action: str) -> None:
                           in rail_names())))
 
     args = [(drop_or_swap_rail, ch) for ch in
-            (chunk(targets, THREADS))]
+            (setup.chunk(targets, setup.THREADS))]
 
-    with Pool(THREADS) as pool:
-        ret = pool.map(_worker, args)
+    with Pool(setup.THREADS) as pool:
+        ret = pool.map(setup.worker, args)
     res = {}
     for part in ret:
         res.update(part)

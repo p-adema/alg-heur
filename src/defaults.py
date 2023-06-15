@@ -8,7 +8,7 @@ from src.algorithms import standard, generic, heuristics, adjusters
 from src.classes import rails, runner
 
 DIST_CAP = 180
-LINE_CAP = 20
+LINE_CAP = 7
 
 INFRA_FILES = [('data/positions_small.csv', 'data/connections_small.csv'),
                ('data/positions.csv', 'data/connections.csv')]
@@ -29,10 +29,11 @@ rr = partial(runner.Runner, infra=default_infra,
              dist_cap=DIST_CAP, line_cap=LINE_CAP)
 
 std_rd = rr(standard.Random)
-std_gr = rr(standard.Greedy, optimal=False, track_best=True)
+std_gr = rr(standard.Greedy, track_best=True)
+std_pr = rr(standard.Perfectionist)
 std_hc = rr(standard.HillClimb, clean=False)
-std_la = rr(standard.LookAhead, stop_backtracking=True, track_best=True, clean=False, stations='degree', depth=2)
-std_sa = rr(standard.SimulatedAnnealing, clean=False, iter_cap=500)
+std_la = rr(standard.LookAhead, stop_backtracking=True, track_best=True, clean=False, depth=2)
+std_sa = rr(standard.SimulatedAnnealing, clean=False, iter_cap=500, tag=500)
 
 custom_runner: runner.Runner = rr(
     generic.Constructive,
@@ -44,4 +45,4 @@ custom_runner: runner.Runner = rr(
     adj=adjusters.argmax
 )
 
-default_runner: runner.Runner = custom_runner
+default_runner: runner.Runner = std_rd

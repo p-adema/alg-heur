@@ -5,19 +5,28 @@ from __future__ import annotations
 import matplotlib.pyplot as plt
 import numpy as np
 
-from src.defaults import default_runner as runner
+SMOOTH = 0
+LARGE = False
 
-SAMPLE_SIZE = 1_000
+targets = {
+    'gr': 'Greedy',
+    'rd': 'Random',
+    # 'pr': 'Perfectionist',
+    'hc': 'Hill Climb',
+    # 'sa-100': 'Sim. Anneal. 100 iter.',
+    # 'sa-500': 'Sim. Anneal. 500 iter.',
+}
+
 ax = plt.subplot()
-sampler = np.vectorize(lambda _: runner.run().quality())
+for alg, name in targets.items():
+    file = f'results/statistics/dist/{"nl" if LARGE else "nh"}_{alg}.npy'
+    arr = np.lib.stride_tricks.sliding_window_view(np.load(file), 1 + 2 * SMOOTH).mean(axis=1)
 
-for line_cap in [4, 5, 6, 7]:
-    print('Calculating', line_cap, 'rails')
-    runner.line_cap = line_cap
-
-    data = sampler(np.empty(SAMPLE_SIZE))
-    data.sort()
-    ax.plot(data, SAMPLE_SIZE - np.arange(SAMPLE_SIZE), label=f'{line_cap} rails')
+    ax.plot(np.arange(0 + 10 * SMOOTH, 10_000 - 10 * SMOOTH, 10), arr / sum(arr), label=name)
 
 ax.legend()
+if LARGE:
+    plt.xlim((1_000, 7_500))
+else:
+    plt.xlim((7_000, 9_500))
 plt.show()

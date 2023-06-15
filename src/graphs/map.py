@@ -7,7 +7,7 @@ import itertools
 import matplotlib.pyplot as plt
 
 from src.classes import rails, lines
-from src.defaults import default_runner as runner, custom_runner
+from src.defaults import default_runner as runner
 
 ANNOTATE_STATIONS = False
 plt.rcParams['figure.dpi'] = 200
@@ -52,8 +52,8 @@ def draw_network(net: lines.Network):
 
 if __name__ == '__main__':
     network = runner.run()
-    # with open('results/resultssolutions/nl.csv', 'r') as file:
+    # with open('results/solutions/nl.csv', 'r') as file:
     #     sol = file.read()
     # network = lines.Network.from_output(sol, runner.infra)
     draw_network(network)
-    print(network.to_output())
+    # print(network.to_output())

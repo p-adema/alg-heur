@@ -9,16 +9,12 @@ from typing import Generator
 from src.classes.abstract import Algorithm
 from src.classes.lines import Network
 from src.classes.moves import ExtensionMove, AdditionMove
-from src.classes.rails import Station
-
-from functools import partial
-from src.algorithms.heuristics import greedy
 
 
 class Random(Algorithm):
     """ Constructive algorithm that repeatedly takes a random action.
         First starts all lines, then expands them                     """
-    name = 'ra'
+    name = 'rd'
 
     def __init__(self, base: Network, **options):
         super().__init__(base, **options)
@@ -47,7 +43,6 @@ class Greedy(Algorithm):
         super().__init__(base, **options)
         self.infra = base.rails
         self.line_cap = options.get('line_cap', 7)
-        self.optimal = options.get('optimal', False)
         self.longest_rail = self.infra.min_max[1]
 
     def _sort_key(self, extension: ExtensionMove):
@@ -75,17 +70,7 @@ class Greedy(Algorithm):
                 add.commit()
                 continue
 
-            if mov.new:
-                return mov
-            if len(self.active.lines) < self.line_cap:
-                add = self.select_root()
-                if add is not None:
-                    add.commit()
-                    continue
-
-            if not self.optimal:
-                return mov
-            return None
+            return mov
 
     def select_root(self) -> AdditionMove | None:
         """ Selects a root to start a new line from, preferring roots
@@ -107,6 +92,30 @@ class Greedy(Algorithm):
             raise StopIteration
         ext.commit()
         return self.active
+
+
+class Perfectionist(Greedy):
+    """ A variant of the greedy algorithm, that only
+        looks for perfect (zero overlap) solutions   """
+    name = 'pr'
+
+    def next_move(self) -> ExtensionMove | None:
+        """
+        Constructively generate an extension to a network, refusing overlap
+        :return: ExtensionMove, or None if there are none remaining
+        """
+        while True:
+            mov = super().next_move()
+
+            if mov.new:
+                return mov
+            if len(self.active.lines) < self.line_cap:
+                add = self.select_root()
+                if add is not None:
+                    add.commit()
+                    continue
+
+            return None
 
 
 class HillClimb(Algorithm):

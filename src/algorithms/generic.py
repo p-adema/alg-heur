@@ -7,21 +7,21 @@ import random
 from src.algorithms import adjusters
 from src.classes.abstract import Algorithm, Heuristic, Adjuster, Move
 from src.classes.lines import Network
-from src.classes.moves import AdditionMove
 
 
 class Constructive(Algorithm):
     """ Generic constructive algorithm, chooses using a
         heuristic and normalisation                     """
+    name = 'cn'
+
     def __init__(self, base: Network, heur: Heuristic,
-                 adj: Adjuster = adjusters.relu, nametag: str = '', **options):
+                 adj: Adjuster = adjusters.relu, **options):
         super().__init__(base, **options)
         self.infra = base.rails
         self.line_cap = options.get('line_cap', 7)
         self.optimal = options.get('optimal', False)
         self.heur = heur
         self.adj = adj
-        self.name = f'cn-{nametag}' if nametag else 'cn'
 
     def next_move(self) -> Move | None:
         """

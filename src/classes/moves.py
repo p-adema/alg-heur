@@ -73,7 +73,8 @@ class AdditionMove(NamedTuple):
         return self._replace(network=net)
 
     def degree(self) -> int:
-        return sum(not bound for bound in self.network.link_count[self.root])
+        """ The amount of free connections the root of this addition has """
+        return self.network.free_degree[self.root]
 
 
 if TYPE_CHECKING:
