@@ -1,11 +1,12 @@
 """ Class to unify interface for running algorithms
 
 Optional parameter list:
-    clean: Whether a random solution should not be generated as base
-    stations: Whether, on a clean run, lines should be pre-selected
-        'none' for no allocation
-        'random' for random allocation
-        'degree' for odd degree preference
+    start: What the algorithm should be given to start with
+         = 'clean' -> An empty state
+         = 'random' -> A run of the standard.Random algorithm
+         = 'greedy' -> A run of the standard.Greedy algorithm
+         = 'stations random' -> line_cap lines distributed randomly
+         = 'stations degree' -> line_cap lines distributed on odd degree stations
 
     Loop options, all default disabled:
     (note that enabling any results in a performance penalty)
@@ -30,13 +31,12 @@ class Runner:
     """ Class representing a run configuration for an algorithm """
 
     def __init__(self, alg: Type[Algorithm],
-                 infra: Rails | tuple[str, str], clean: bool = True,
-                 state_hook: Callable | None = None, **opt):
+                 infra: Rails | tuple[str, str], start: str = 'clean', **opt):
         """
         Create a new run configuration
         :param alg: The Algorithm Type to construct from
         :param infra: The infrastructure or relevant files
-        :param clean: Whether a random solution should not be generated as base
+        :param start: Whether a base solution should be generated to iterate on
         :param opt: Further options, see docstring at top of file
         """
         self.alg = alg
@@ -46,35 +46,45 @@ class Runner:
             self.infra.load(loc, conn)
         else:
             self.infra = infra
-        self.clean = clean
-        self.state_hook = state_hook
+        self.start = start
+        self.state_hook = opt.get('state_hook', None)
         self.dist_cap = opt.get('dist_cap', 180)
         self.line_cap = opt.get('line_cap', 20)
         self.options = opt
 
     def run(self) -> Network:
         """ Run the algorithm once, returning the final network """
-        if self.clean:
+        if self.start == 'clean' or self.start.startswith('stations '):
             base = Network(self.infra, self.dist_cap)
             self._alloc_stations(base)
-        else:
-            base = Runner(standard.Greedy, self.infra,
+        elif self.start in ['greedy', 'random']:
+            alg = standard.Greedy if self.start == 'greedy' else standard.Random
+            base = Runner(alg, self.infra,
                           dist_cap=self.dist_cap, line_cap=self.line_cap).run()
+        else:
+            raise ValueError('Runner -> start invalid. See documentation at top of file')
         alg_inst = self.alg(base, **self.options)
-        return self._run_loop(alg_inst)
+
+        net = self._run_loop(alg_inst)
+        if self.options.get('trim', True):
+            net.trim()
+        return net
 
     def _alloc_stations(self, net: Network) -> None:
-        mode = self.options.get('stations', 'none')
-        if mode == 'none':
+        if self.start == 'clean':
             return
-        if mode == 'random':
-            # Assumption: line_cap <= station count
-            for root in sample(net.rails.stations, self.line_cap):
-                net.add_line(root)
-            return
-        if mode != 'degree':
+        if self.start == 'stations random':
+            try:
+                for root in sample(net.rails.stations, self.line_cap):
+                    net.add_line(root)
+                return
+            except ValueError:
+                raise ValueError("Runner -> line_cap is larger than station count")
+
+        if self.start != 'stations degree':
             raise ValueError("Station allocation method must be one"
-                             " of 'none', 'random' or 'degree'")
+                             " of 'stations none', 'stations random'"
+                             " or 'stations degree'")
         odd, even = [], []
         for station, links in net.link_count.items():
             if len(links) % 2:
@@ -161,5 +171,8 @@ class Runner:
     @property
     def name(self):
         """ Get the name of the assigned algorithm """
-        tag = f'-{self.options["tag"]}' if 'tag' in self.options else ''
+        if 'tag' in self.options:
+            tag = f'-{self.options["tag"]}'
+        else:
+            tag = ''
         return self.alg.name + tag

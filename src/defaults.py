@@ -7,19 +7,20 @@ from functools import partial
 from src.algorithms import standard, generic, heuristics, adjusters
 from src.classes import rails, runner
 
-DIST_CAP = 180
-LINE_CAP = 7
-
 INFRA_FILES = [('data/positions_small.csv', 'data/connections_small.csv'),
                ('data/positions.csv', 'data/connections.csv')]
-INFRA_LARGE = False
+INFRA_LARGE = True
 
 default_infra = rails.Rails()
 default_infra.load(*INFRA_FILES[INFRA_LARGE])
 
 if INFRA_LARGE:
+    LINE_CAP = 12
+    DIST_CAP = 180
     DROPPED_STATION = 'Utrecht Centraal'
 else:
+    LINE_CAP = 4
+    DIST_CAP = 120
     DROPPED_STATION = 'Amsterdam Centraal'
 
 dropped_infra = default_infra.copy()
@@ -31,18 +32,35 @@ rr = partial(runner.Runner, infra=default_infra,
 std_rd = rr(standard.Random)
 std_gr = rr(standard.Greedy, track_best=True)
 std_pr = rr(standard.Perfectionist)
-std_hc = rr(standard.HillClimb, clean=False)
-std_la = rr(standard.LookAhead, stop_backtracking=True, track_best=True, clean=False, depth=2)
-std_sa = rr(standard.SimulatedAnnealing, clean=False, iter_cap=500, tag=500)
+std_hc = rr(standard.HillClimb, start='greedy')
+std_la = rr(standard.LookAhead, stop_backtracking=True, track_best=True, start='clean', depth=3)
+std_sa = rr(standard.SimulatedAnnealing, start='greedy', iter_cap=500, tag=500)
+
+cst_gr = rr(
+    generic.Constructive,
+    track_best=True,
+    heur=heuristics.greedy(LINE_CAP),
+    adj=adjusters.soft_3,
+    tag='gr-s3'
+)
+
+cst_nf = rr(
+    generic.Constructive,
+    track_best=True,
+    heur=heuristics.next_free(LINE_CAP),
+    adj=adjusters.soft_3,
+    tag='nf-s3'
+)
 
 custom_runner: runner.Runner = rr(
     generic.Constructive,
-    stop_backtracking=False,
-    clean=True,
+    stop_backtracking=True,
+    start='clean',
     track_best=True,
-    stations='none',
-    heur=heuristics.greedy(LINE_CAP),
-    adj=adjusters.argmax
+    heur=heuristics.next_free(LINE_CAP),
+    adj=adjusters.soft_3,
+    tag='nf-s3'
 )
 
-default_runner: runner.Runner = std_rd
+
+default_runner: runner.Runner = cst_gr

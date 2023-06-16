@@ -7,9 +7,9 @@ import itertools
 import matplotlib.pyplot as plt
 
 from src.classes import rails, lines
-from src.defaults import default_runner as runner
+from src.defaults import default_runner as runner, INFRA_LARGE
 
-ANNOTATE_STATIONS = False
+ANNOTATE_STATIONS = True
 plt.rcParams['figure.dpi'] = 200
 
 
@@ -50,10 +50,23 @@ def draw_network(net: lines.Network):
     plt.show()
 
 
-if __name__ == '__main__':
-    network = runner.run()
-    # with open('results/solutions/nl.csv', 'r') as file:
-    #     sol = file.read()
-    # network = lines.Network.from_output(sol, runner.infra)
+def show_best():
+    print('Showing stored best solutions')
+    size = 'nl' if INFRA_LARGE else 'nh'
+    with open(f'results/solutions/{size}.csv', 'r') as file:
+        sol = file.read()
+    network = lines.Network.from_output(sol, runner.infra)
     draw_network(network)
-    # print(network.to_output())
+
+
+def show_default():
+    print('Drawing a map for', runner.name, '...')
+    network = runner.run()
+    draw_network(network)
+    print('Result:\n')
+    print(network.to_output())
+
+
+if __name__ == '__main__':
+    # show_best()
+    show_default()

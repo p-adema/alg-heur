@@ -1,7 +1,6 @@
 """ Heuristic functions of state and move for generic algorithms """
 
 import random
-import math
 
 from src.classes.abstract import Move, Heuristic
 from src.classes.lines import Network
@@ -50,20 +49,57 @@ def full_lookahead(line_cap: int = 20, depth: int = 2,
 
 
 def branch_bound(line_cap: int = 20, depth: int = 2) -> Heuristic:
-    """ 'Depth'-optimal heuristic, prunes proven suboptimal branches """
+    """ Pruning heuristic, discards branches seen as suboptimal """
+
+    free_util = 0
 
     def _bound(net: Network, steps: int) -> float:
-        max_plus = min(net.rails.links - net.total_links,
-                       steps) / net.rails.links * 10_000
-        min_minus = net.rails.min_max[0] * steps
-        return max_plus - min_minus
+        """ Put an upper bound on how much the current net can be improved,
+            given 'steps' remaining moves to analyse                        """
+        return min(net.rails.links - net.total_links, steps) * free_util
 
-    def _branch_bound(net: Network, __: Move, _depth: int = depth) -> float:
-        if not _depth:
-            return net.quality()
+    def _branch(net: Network, _depth: int, highest: float) -> float:
+        """ Analyse all state neighbours of net, checking if they improve highest """
+        if _depth > 0:
+            for state_neighbor in net.state_neighbours(line_cap):
+                score = state_neighbor.quality()
+                if score + _bound(state_neighbor, _depth - 1) <= highest:
+                    # Cut the branch
+                    continue
+                highest = max(_branch(state_neighbor, _depth - 1, score), highest)
 
-        highest = (-math.inf, None)
+        return highest
+
+    def _entry(net: Network, __: Move) -> float:
+        """ Entrypoint for the heuristic, initialises values """
+        nonlocal free_util
+        free_util = 10_000 / net.rails.links - net.rails.min_max[0]
+        highest = net.quality()
         for state_neighbor in net.state_neighbours(line_cap):
-            ...
+            highest = _branch(state_neighbor, depth, highest)
 
-    return _branch_bound
+        return highest
+
+    return _entry
+
+
+def next_free(line_cap: int = 20) -> Heuristic:
+    """ Similar priority scheme to Greedy, but looks at possible further
+        extensions to rails that would overlap, prioritising moves that
+        lead to free rails.                                              """
+
+    def _free(mov: ExtensionMove) -> int:
+        if mov.new:
+            return 3
+        if mov.line.network.free_degree[mov.destination]:
+            return 2
+        return 1
+
+    def _next_free(net: Network, mov: Move) -> float:
+        if isinstance(mov, ExtensionMove):
+            return 100 * _free(mov) - mov.duration
+        if isinstance(mov, AdditionMove):
+            return len(net.lines) < line_cap
+        return 0
+
+    return _next_free

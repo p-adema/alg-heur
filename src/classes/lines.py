@@ -217,6 +217,16 @@ class Network:
             return self.extensions()
         return itertools.chain(self.extensions(), self.additions())
 
+    def trim(self):
+        """ Remove plainly useless rails (overlaps at ends) """
+        act = True
+        while act:
+            act = False
+            for ret in self.retractions():
+                if ret.evident():
+                    ret.commit()
+                    act = True
+
     def coverage(self):
         """ The fraction of the rails covered """
         return self.total_links / self.rails.links

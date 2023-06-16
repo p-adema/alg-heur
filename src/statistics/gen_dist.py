@@ -11,7 +11,7 @@ import src.statistics.mp_setup as setup
 from src.classes.lines import Network
 from src.defaults import default_runner as runner, INFRA_LARGE, default_infra
 
-SIZE = 100_000
+SIZE = 1_000_000
 
 
 def _dist(size: int):
@@ -55,6 +55,8 @@ def dist():
             print('Best solution improved to', best[0])
             with open(record_file, 'w', encoding='utf-8') as file:
                 file.write(best[1].to_output())
+        else:
+            print(f'Best solution ({best[0]}) under record ({last.quality()})')
 
 
 if __name__ == '__main__':

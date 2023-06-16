@@ -147,11 +147,12 @@ class LookAhead(Algorithm):
 
     def __next__(self) -> Network:
         line_cap = self.options.get('line_cap', 7)
-        net = max(
+        self.active = max(
             (state_neighbour for state_neighbour in
-             self.active.state_neighbours(line_cap, stationary=True)),
+             self.active.state_neighbours(line_cap, stationary=False)),
             key=self.look_ahead, default=self.active)
-        return net
+
+        return self.active
 
     def look_ahead(self, base: Network, depth: int | None = None) -> float:
         """ Look 'depth' moves ahead (default is the given depth cap),
@@ -165,8 +166,8 @@ class LookAhead(Algorithm):
         return max(base.quality(), max(
             (self.look_ahead(state_neighbour, depth - 1)
              for state_neighbour in
-             base.state_neighbours(line_cap, stationary=True))
-        ))
+             base.state_neighbours(line_cap, stationary=False)),
+            default=0))
 
 
 class SimulatedAnnealing(Algorithm):

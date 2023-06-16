@@ -40,6 +40,14 @@ class RetractionMove(NamedTuple):
         """ Rebind this retraction to the corresponding line in 'net' """
         return self._replace(line=net.lines[self.line.index])
 
+    def evident(self) -> bool:
+        """ Checks whether this retraction is a retraction over an overlap """
+        if self.from_end:
+            last, rem = self.line.stations[-1], self.line.stations[-2]
+        else:
+            last, rem = self.line.stations[0], self.line.stations[1]
+        return bool(self.line.network.link_count[last][rem] - 1)
+
 
 class RemovalMove(NamedTuple):
     """ Represents a removal of a train line """
