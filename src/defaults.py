@@ -9,7 +9,7 @@ from src.classes import rails, runner
 
 INFRA_FILES = [('data/positions_small.csv', 'data/connections_small.csv'),
                ('data/positions.csv', 'data/connections.csv')]
-INFRA_LARGE = True
+INFRA_LARGE = False
 
 default_infra = rails.Rails()
 default_infra.load(*INFRA_FILES[INFRA_LARGE])
@@ -44,6 +44,24 @@ cst_gr = rr(
     tag='gr-s3'
 )
 
+# Warning: absurdly slow! Like, 3 mins per result on NH
+cst_la = rr(
+    generic.Constructive,
+    track_best=True,
+    heur=heuristics.full_lookahead(LINE_CAP, 3),
+    adj=adjusters.argmax,
+    tag='la-max'
+)
+
+cst_bb = rr(
+    generic.Constructive,
+    track_best=True,
+    heur=heuristics.branch_bound(LINE_CAP, 3),
+    adj=adjusters.soft_3,
+    start='stations degree',
+    tag='bb-s3'
+)
+
 cst_nf = rr(
     generic.Constructive,
     track_best=True,
@@ -63,4 +81,4 @@ custom_runner: runner.Runner = rr(
 )
 
 
-default_runner: runner.Runner = cst_gr
+default_runner: runner.Runner = cst_bb

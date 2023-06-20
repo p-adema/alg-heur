@@ -6,6 +6,7 @@
 !/results/
 /results/training/*
 /results/statistics/*
+/results/presentation/*
 !/README.md
 !/requirements.txt
 !/.gitignore

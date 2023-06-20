@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os.path
+import time
 from multiprocessing import Pool
 
 import numpy as np
@@ -11,7 +12,7 @@ import src.statistics.mp_setup as setup
 from src.classes.lines import Network
 from src.defaults import default_runner as runner, INFRA_LARGE, default_infra
 
-SIZE = 1_000_000
+SIZE = 100
 
 
 def _dist(size: int):
@@ -29,6 +30,7 @@ def _dist(size: int):
 def dist():
     """ Gather distribution data for the default runner """
     print(f'Recording {SIZE} runs on {setup.THREADS} threads for {runner.name}...')
+    start = time.time()
     w_size = (int(SIZE // setup.THREADS),)
     args = [(_dist, (w_size,)) for _ in range(setup.THREADS)]
     with Pool(setup.THREADS) as pool:
@@ -57,6 +59,7 @@ def dist():
                 file.write(best[1].to_output())
         else:
             print(f'Best solution ({best[0]}) under record ({last.quality()})')
+    print('Took', round(time.time() - start), 'seconds')
 
 
 if __name__ == '__main__':

@@ -27,7 +27,7 @@ def soft_3(weights: list[float]) -> list[float]:
     top = nlargest(4, weights)
     fourth = min(top)
     first = max(top)
-    if fourth == first:
+    if fourth == first or first > fourth + 200:
         # Argmax if we can't reduce
         return [(1 if w == first else 0) for w in weights]
-    return softmax([w - fourth for w in weights])
+    return softmax(relu([w - fourth for w in weights]))

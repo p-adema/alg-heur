@@ -35,21 +35,35 @@ def full_lookahead(line_cap: int = 20, depth: int = 2,
                    constructive: bool = True) -> Heuristic:
     """ 'Depth'-optimal heuristic, looks ahead at possible moves """
 
-    def _full_lookahead(net: Network, __: Move, _depth: int = depth) -> float:
-        if not _depth:
+    def _full_lookahead(net: Network, _depth: int) -> float:
+        """ Performs lookahead to 'depth' """
+        if _depth < 1:
             return net.quality()
 
         return max(net.quality(), max(
-            (_full_lookahead(state_neighbour, __, _depth - 1)
+            (_full_lookahead(state_neighbour, _depth - 1)
              for state_neighbour in
-             net.state_neighbours(line_cap, stationary=True, constructive=constructive))
+             net.state_neighbours(line_cap, stationary=False, constructive=constructive)),
+            default=0
         ))
 
-    return _full_lookahead
+    def _entry(origin: Network, mov: Move) -> float:
+        """ Entrypoint for the heuristic, initialises values """
+        net = origin.copy()
+        mov.rebind(net).commit()
+        highest = 0
+        for state_neighbor in net.state_neighbours(line_cap, constructive=constructive, stationary=False):
+            highest = max(_full_lookahead(state_neighbor, depth - 1), highest)
+
+        return highest
+
+    return _entry
 
 
-def branch_bound(line_cap: int = 20, depth: int = 2) -> Heuristic:
-    """ Pruning heuristic, discards branches seen as suboptimal """
+def branch_bound(line_cap: int = 20, depth: int = 2,
+                 constructive: bool = True) -> Heuristic:
+    """ Pruning heuristic, discards branches seen as suboptimal.
+        Probably 'depth'-optimal                                 """
 
     free_util = 0
 
@@ -61,7 +75,7 @@ def branch_bound(line_cap: int = 20, depth: int = 2) -> Heuristic:
     def _branch(net: Network, _depth: int, highest: float) -> float:
         """ Analyse all state neighbours of net, checking if they improve highest """
         if _depth > 0:
-            for state_neighbor in net.state_neighbours(line_cap):
+            for state_neighbor in net.state_neighbours(line_cap, constructive=constructive, stationary=False):
                 score = state_neighbor.quality()
                 if score + _bound(state_neighbor, _depth - 1) <= highest:
                     # Cut the branch
@@ -70,13 +84,15 @@ def branch_bound(line_cap: int = 20, depth: int = 2) -> Heuristic:
 
         return highest
 
-    def _entry(net: Network, __: Move) -> float:
+    def _entry(origin: Network, mov: Move) -> float:
         """ Entrypoint for the heuristic, initialises values """
+        net = origin.copy()
+        mov.rebind(net).commit()
         nonlocal free_util
         free_util = 10_000 / net.rails.links - net.rails.min_max[0]
         highest = net.quality()
-        for state_neighbor in net.state_neighbours(line_cap):
-            highest = _branch(state_neighbor, depth, highest)
+        for state_neighbor in net.state_neighbours(line_cap, constructive=constructive):
+            highest = _branch(state_neighbor, depth - 1, highest)
 
         return highest
 
@@ -103,3 +119,16 @@ def next_free(line_cap: int = 20) -> Heuristic:
         return 0
 
     return _next_free
+
+
+def perfectionist(line_cap: int = 20) -> Heuristic:
+    """ Greedy algorithm, without overlapping lines """
+
+    def _perfectionist(net: Network, mov: Move) -> float:
+        if isinstance(mov, ExtensionMove) and mov.new:
+            return 100 - mov.duration
+        if isinstance(mov, AdditionMove):
+            return len(net.lines) < line_cap
+        return 0
+
+    return _perfectionist
