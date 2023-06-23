@@ -24,7 +24,8 @@ class Station(NamedTuple):
 
 class RailModification(NamedTuple):
     """ Wrapper for a modification to the rail network """
-    type: Literal['move_rail'] | Literal['drop_rail'] | Literal['drop_station']
+    type: Literal['move_rail'] | Literal['drop_rail'] \
+          | Literal['add_rail'] | Literal['drop_station']
     origin: Station
     dest: Station | None = None
 
@@ -110,7 +111,7 @@ class Rails:
             old_dest = random.choice(old_outgoing)
             self._swap_rail(origin, old_dest)
 
-    def _swap_rail(self, origin, old_dest):
+    def _swap_rail(self, origin: Station, old_dest: Station):
         new_dest = random.choice([dest for dest in self.stations
                                   if dest not in self.connections[origin]
                                   and dest is not origin])
@@ -121,6 +122,30 @@ class Rails:
         self.connections[new_dest][origin] = duration
         self.modifications.append(
             RailModification('move_rail', origin, new_dest))
+
+    def add_rails(self, count: int = 3,
+                  pairs: list[tuple[str, str]] | None = None):
+        """ Add 'count' random rails to the network,
+            or specific rails by station names          """
+        if pairs is not None:
+            for name_a, name_b in pairs:
+                self._add_rail(self.names[name_a], self.names[name_b])
+            return
+
+        for _ in range(count):
+            origin = random.choice(self.stations)
+            for station in random.sample(self.stations, len(self.stations)):
+                if station is not origin and station not in self.connections[origin]:
+                    self._add_rail(origin, station)
+                    break
+
+    def _add_rail(self, origin: Station, dest: Station):
+        duration = max(self._est_time(origin, dest), 3)
+        self.connections[origin][dest] = duration
+        self.connections[dest][origin] = duration
+        self.links += 1
+        self.modifications.append(
+            RailModification('add_rail', origin, dest))
 
     def drop_rails(self, count: int = 3,
                    pairs: list[tuple[str, str]] | None = None):
@@ -140,6 +165,12 @@ class Rails:
         del self.connections[origin][dest]
         del self.connections[dest][origin]
         self.links -= 1
+
+        if not self.connections[origin]:
+            self.stations = tuple(s for s in self.stations if s is not origin)
+
+        if not self.connections[dest]:
+            self.stations = tuple(s for s in self.stations if s is not dest)
         self.modifications.append(
             RailModification('drop_rail', origin, dest))
 

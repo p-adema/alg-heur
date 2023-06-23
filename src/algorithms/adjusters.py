@@ -3,6 +3,8 @@
 from heapq import nlargest
 from math import exp
 
+from src.classes.abstract import Adjuster
+
 
 def relu(weights: list[float]) -> list[float]:
     """ Makes no adjustments """
@@ -22,12 +24,17 @@ def softmax(weights: list[float]) -> list[float]:
     return [e / s_w for e in e_w]
 
 
-def soft_3(weights: list[float]) -> list[float]:
-    """ Performs a softmax on the top 3 choices """
-    top = nlargest(4, weights)
-    fourth = min(top)
-    first = max(top)
-    if fourth == first or first > fourth + 200:
-        # Argmax if we can't reduce
-        return [(1 if w == first else 0) for w in weights]
-    return softmax(relu([w - fourth for w in weights]))
+def soft_n(n: int) -> Adjuster:
+    """ Performs a softmax on the top n choices """
+
+    def _soft_n(weights: list[float]) -> list[float]:
+        """ Actual adjuster function to perform softmax """
+        top = nlargest(n + 1, weights)
+        low = min(top)
+        high = max(top)
+        if low == high or high > low + 200:
+            # Argmax if we can't reduce
+            return [(1 if w == high else 0) for w in weights]
+        return softmax(relu([w - low for w in weights]))
+
+    return _soft_n

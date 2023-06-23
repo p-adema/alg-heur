@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import platform
 from os.path import isfile
+from subprocess import Popen
 from typing import Iterable, Callable
 
 THREADS = 8
@@ -15,7 +17,6 @@ def safety_check(path: str) -> bool:
         if input("     Overwrite data? (y/N)  ").lower() != 'y':
             print('     Aborted.')
             return False
-        print('     Deleted...\n')
     return True
 
 
@@ -39,3 +40,17 @@ def worker(boilerplate: tuple[Callable, list]) -> dict:
     for args in arglist:
         res[args] = task(*args)
     return res
+
+
+class NoSleep:
+    def __init__(self):
+        self.proc = None
+
+    def __enter__(self):
+        print('Preventing sleep...')
+        if platform.platform().split('-')[0] == 'macOS':
+            self.proc = Popen('caffeinate')
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        if self.proc is not None:
+            self.proc.terminate()

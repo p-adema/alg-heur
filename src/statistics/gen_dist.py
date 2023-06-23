@@ -12,7 +12,7 @@ import src.statistics.mp_setup as setup
 from src.classes.lines import Network
 from src.defaults import default_runner as runner, INFRA_LARGE, default_infra
 
-SIZE = 100
+SIZE = 1_000_000
 
 
 def _dist(size: int):
@@ -60,6 +60,7 @@ def dist():
         else:
             print(f'Best solution ({best[0]}) under record ({last.quality()})')
     print('Took', round(time.time() - start), 'seconds')
+    print('Saved to', dist_file)
 
 
 if __name__ == '__main__':

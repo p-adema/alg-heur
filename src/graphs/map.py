@@ -38,10 +38,11 @@ def ax_draw_network(axes: plt.Axes, net: lines.Network):
             else:
                 offset = (len(net.lines) // 2 - num) * 0.1
                 axes.plot((s_a.E, s_b.E), (s_a.N, s_b.N), color=colour, zorder=-1, linestyle=(offset, (3, 2, 1, 2)))
-    if not PRESENTATION:
-        axes.set_title(f'Score: {net.quality():.0f}    '
-                       f'Coverage: {net.coverage():.0%}'
-                       f'    Over-time: {net.overtime}')
+
+    axes.set_title(f'Score: {net.quality():.0f}    '
+                   f'Coverage: {net.coverage():.0%}'
+                   f'    Over-time: {net.overtime}',
+                   color=('white' if PRESENTATION else 'black'))
     for s_a, unlinked in net.link_count.items():
         for s_b in (station for station, links in unlinked.items() if not links):
             if PRESENTATION:
@@ -95,6 +96,6 @@ def show_infra():
 
 
 if __name__ == '__main__':
-    # show_best()
-    show_default()
+    show_best()
+    # show_default()
     # show_infra()
