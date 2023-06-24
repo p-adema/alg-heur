@@ -3,9 +3,11 @@
 from __future__ import annotations
 
 import platform
+import random
 from os.path import isfile
 from subprocess import Popen
 from typing import Iterable, Callable
+import multiprocessing
 
 THREADS = 8
 
@@ -23,6 +25,7 @@ def safety_check(path: str) -> bool:
 def chunk(iterable: Iterable, count: int) -> list[list]:
     """ Split 'it' as evenly as possible into 'count' lists """
     full = list(iterable)
+    random.shuffle(full)
     chunked = []
     size, rem = divmod(len(full), count)
     for num, idx in enumerate(range(0, len(full) // count * count, size)):
@@ -37,8 +40,14 @@ def worker(boilerplate: tuple[Callable, list]) -> dict:
         return a mapping from arguments to return values   """
     task, arglist = boilerplate
     res = {}
-    for args in arglist:
+
+    # Who's going to use more than 9 threads? Not me!
+    number = int(multiprocessing.current_process().name[-1])
+
+    for step, args in enumerate(arglist):
+        print(f'{step/len(arglist):.0%}'.rjust(number * 5))
         res[args] = task(*args)
+    print('done'.rjust(number * 5))
     return res
 
 

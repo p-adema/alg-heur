@@ -6,7 +6,6 @@ import time
 from collections import ChainMap
 from multiprocessing import Pool
 
-import matplotlib.pyplot as plt
 import numpy as np
 
 import src.statistics.mp_setup as setup
@@ -14,7 +13,7 @@ from src.algorithms import generic, heuristics, adjusters
 from src.classes.runner import Runner
 from src.defaults import rr, INFRA_LARGE, default_infra
 
-SIZE = 100_000
+SIZE = 10_000
 MAX_N = 10
 MOD_WIDTH = 40
 
@@ -86,8 +85,8 @@ def experiment():
         with Pool(8) as pool:
             ret = ChainMap(*pool.map(setup.worker, args))
 
-        perc_50 = np.zeros((MAX_N, 2*MOD_WIDTH+1))
-        perc_90 = np.zeros((MAX_N, 2*MOD_WIDTH+1))
+        perc_50 = np.zeros((MAX_N, 2 * MOD_WIDTH + 1))
+        perc_90 = np.zeros((MAX_N, 2 * MOD_WIDTH + 1))
         with np.nditer([perc_50, perc_90], flags=['multi_index'], op_flags=['writeonly']) as it:
             for p5_loc, p9_loc in it:
                 dist: np.ndarray = ret[(it.multi_index[0] + 1, it.multi_index[1] - MOD_WIDTH)]
