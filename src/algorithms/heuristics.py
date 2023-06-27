@@ -52,7 +52,8 @@ def full_lookahead(line_cap: int = 20, depth: int = 2,
         net = origin.copy()
         mov.rebind(net).commit()
         highest = 0
-        for state_neighbor in net.state_neighbours(line_cap, constructive=constructive, stationary=False):
+        for state_neighbor in net.state_neighbours(
+                line_cap, constructive=constructive, stationary=False):
             highest = max(_full_lookahead(state_neighbor, depth - 1), highest)
 
         return highest
@@ -75,7 +76,8 @@ def branch_bound(line_cap: int = 20, depth: int = 2,
     def _branch(net: Network, _depth: int, highest: float) -> float:
         """ Analyse all state neighbours of net, checking if they improve highest """
         if _depth > 0:
-            for state_neighbor in net.state_neighbours(line_cap, constructive=constructive, stationary=False):
+            for state_neighbor in net.state_neighbours(
+                    line_cap, constructive=constructive, stationary=False):
                 score = state_neighbor.quality()
                 if score + _bound(state_neighbor, _depth - 1) <= highest:
                     # Cut the branch

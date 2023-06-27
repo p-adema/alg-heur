@@ -34,10 +34,13 @@ def ax_draw_network(axes: plt.Axes, net: lines.Network):
     for line, colour, num in zip(net.lines, itertools.cycle(LINE_COLOURS), range(len(net.lines))):
         for s_a, s_b in itertools.pairwise(line.stations):
             if net.link_count[s_a][s_b] == 1:
-                axes.plot((s_a.E, s_b.E), (s_a.N, s_b.N), color=colour, zorder=-1)
+                axes.plot((s_a.E, s_b.E), (s_a.N, s_b.N),
+                          color=colour, zorder=-1)
             else:
                 offset = (len(net.lines) // 2 - num) * 0.1
-                axes.plot((s_a.E, s_b.E), (s_a.N, s_b.N), color=colour, zorder=-1, linestyle=(offset, (3, 2, 1, 2)))
+                axes.plot((s_a.E, s_b.E), (s_a.N, s_b.N),
+                          color=colour, zorder=-1,
+                          linestyle=(offset, (3, 2, 1, 2)))
 
     axes.set_title(f'Score: {net.quality():.0f}    '
                    f'Coverage: {net.coverage():.0%}'
@@ -46,8 +49,10 @@ def ax_draw_network(axes: plt.Axes, net: lines.Network):
     for s_a, unlinked in net.link_count.items():
         for s_b in (station for station, links in unlinked.items() if not links):
             if PRESENTATION:
-                axes.plot((s_a.E, s_b.E), (s_a.N, s_b.N), color='#222222', linewidth=1, zorder=0)
-                axes.plot((s_a.E, s_b.E), (s_a.N, s_b.N), color='#bf8888', linestyle='dotted', linewidth=1, zorder=0)
+                axes.plot((s_a.E, s_b.E), (s_a.N, s_b.N), color='#222222',
+                          linewidth=1, zorder=0)
+                axes.plot((s_a.E, s_b.E), (s_a.N, s_b.N), color='#bf8888',
+                          linestyle='dotted', linewidth=1, zorder=0)
             else:
                 axes.plot((s_a.E, s_b.E), (s_a.N, s_b.N), color='red',
                           linestyle='dotted', linewidth=5, zorder=0)
@@ -67,15 +72,17 @@ def draw_network(net: lines.Network):
 
 
 def show_best():
+    """ Draw a map of the best solution for the default infra """
     print('Showing stored best solutions')
     size = 'nl' if INFRA_LARGE else 'nh'
-    with open(f'results/solutions/{size}.csv', 'r') as file:
+    with open(f'results/solutions/{size}.csv', 'r', encoding='utf-8') as file:
         sol = file.read()
     network = lines.Network.from_output(sol, runner.infra)
     draw_network(network)
 
 
 def show_default():
+    """ Draw a map of the result of one run of the default runner """
     print('Drawing a map for', runner.name, '...')
     network = runner.run()
     draw_network(network)
@@ -84,6 +91,7 @@ def show_default():
 
 
 def show_infra():
+    """ Show the problem infrastructure """
     print('Drawing the infrastructure')
     fig, axes = plt.subplots()
     if PRESENTATION:
@@ -96,6 +104,6 @@ def show_infra():
 
 
 if __name__ == '__main__':
-    show_best()
+    # show_best()
     # show_default()
-    # show_infra()
+    show_infra()

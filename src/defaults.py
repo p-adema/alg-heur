@@ -15,19 +15,14 @@ default_infra = rails.Rails()
 default_infra.load(*INFRA_FILES[INFRA_LARGE])
 
 if INFRA_LARGE:
+    # Lowering the line cap to around the best rail count
+    # improves score for algorithms that blindly add rails, making
+    # the comparisons more accurate
     LINE_CAP = 12
     DIST_CAP = 180
-    DROPPED_STATION = 'Utrecht Centraal'
 else:
     LINE_CAP = 4
     DIST_CAP = 120
-    DROPPED_STATION = 'Amsterdam Centraal'
-
-dropped_infra = default_infra.copy()
-dropped_infra.drop_stations(names=[DROPPED_STATION])
-
-mod_inf = default_infra.copy()
-mod_inf.add_rails(count=20)
 
 rr = partial(runner.Runner, infra=default_infra,
              dist_cap=DIST_CAP, line_cap=LINE_CAP)
@@ -38,14 +33,6 @@ std_pr = rr(standard.Perfectionist)
 std_hc = rr(standard.HillClimb, start='greedy')
 std_la = rr(standard.LookAhead, stop_backtracking=True, track_best=True, start='clean', depth=3)
 std_sa = rr(standard.SimulatedAnnealing, start='greedy', iter_cap=100, tag=100)
-
-cst_gr = rr(
-    generic.Constructive,
-    track_best=True,
-    heur=heuristics.greedy(LINE_CAP),
-    adj=adjusters.soft_n(3),
-    tag='gr-s3'
-)
 
 # Warning: absurdly slow! Like, 3 mins per result on NH
 cst_la = rr(
@@ -66,6 +53,7 @@ cst_bb = rr(
     tag='bb-s3'
 )
 
+# Use this.
 cst_nf = rr(
     generic.Constructive,
     track_best=True,
@@ -74,15 +62,16 @@ cst_nf = rr(
     tag='nf-s3'
 )
 
+# If you want to experiment yourself:
 custom_runner: runner.Runner = rr(
     generic.Constructive,
     stop_backtracking=False,
     start='clean',
     track_best=False,
-    heur=heuristics.next_free(LINE_CAP),
-    adj=adjusters.soft_n(7),
-    tag='nf-s7'
+    heur=heuristics.greedy(LINE_CAP),
+    adj=adjusters.soft_n(4),
+    tag='gr-s4'
 )
 
 
-default_runner: runner.Runner = custom_runner
+default_runner: runner.Runner = cst_nf

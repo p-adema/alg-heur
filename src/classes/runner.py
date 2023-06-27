@@ -19,7 +19,7 @@ from __future__ import annotations
 
 from heapq import nlargest
 from random import sample
-from typing import Type, Callable, Generator
+from typing import Type, Generator
 
 from src.algorithms import standard
 from src.classes.abstract import Algorithm
@@ -78,8 +78,9 @@ class Runner:
                 for root in sample(net.rails.stations, self.line_cap):
                     net.add_line(root)
                 return
-            except ValueError:
-                raise ValueError("Runner -> line_cap is larger than station count")
+            except ValueError as exc:
+                raise ValueError("Runner -> line_cap is "
+                                 "larger than station count") from exc
 
         if self.start != 'stations degree':
             raise ValueError("Station allocation method must be one"

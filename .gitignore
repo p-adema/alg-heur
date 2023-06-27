@@ -2,6 +2,7 @@
 !/*.py
 !/data/
 !/src/
+!/docs/
 /src/machine_learning
 !/results/
 /results/training/*

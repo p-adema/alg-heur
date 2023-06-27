@@ -11,7 +11,7 @@ FRAMED = True
 PRESENTATION = True
 
 # noinspection SpellCheckingInspection
-targets = {
+TARGETS = {
     # 'gr': ('Greedy', '#f96a29'),
     # 'rd': ('Random', '#aa1629'),
     # 'pr': ('Perfectionist', '#ff5791'),
@@ -34,7 +34,7 @@ targets = {
 
 fig, ax = plt.subplots()
 print('ALGORITHMS'.rjust(20), '| AVERAGES')
-for alg, desc in targets.items():
+for alg, desc in TARGETS.items():
     name, col = desc
     file = f'results/statistics/dist/{"nl" if LARGE else "nh"}_{alg}.npy'
     arr = np.lib.stride_tricks.sliding_window_view(
@@ -47,8 +47,9 @@ for alg, desc in targets.items():
 ax.legend(facecolor='#222222', labelcolor='white', edgecolor='#222222')
 ax.set_ylim(bottom=0)
 
-title = 'Distributions' if len(targets) > 1 else 'Distribution'
-text_color = 'white' if PRESENTATION else 'black'
+TITLE = 'Distributions' if len(TARGETS) > 1 else 'Distribution'
+TEXT_COLOR = 'white' if PRESENTATION else 'black'
+
 if LARGE:
     if FRAMED:
         plt.xlim((4_797, 7_550))
@@ -56,7 +57,7 @@ if LARGE:
         plt.axvline(4_780, color='red', linewidth=11)
     else:
         plt.xlim((2_500, 7_500))
-    plt.title(f'{title} for NL problem', color=text_color)
+    plt.title(f'{TITLE} for NL problem', color=TEXT_COLOR)
 else:
     if FRAMED:
         plt.xlim((6_664, 9_220))
@@ -64,7 +65,7 @@ else:
         plt.axvline(6_666, color='red', linewidth=7)
     else:
         plt.xlim((4_500, 9_500))
-    plt.title(f'{title} for NH problem', color=text_color)
+    plt.title(f'{TITLE} for NH problem', color=TEXT_COLOR)
 
 if PRESENTATION:
     ax.get_yaxis().set_visible(False)

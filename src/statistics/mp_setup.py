@@ -2,12 +2,13 @@
 
 from __future__ import annotations
 
+import multiprocessing as mp
 import platform
 import random
+import time
 from os.path import isfile
 from subprocess import Popen
 from typing import Iterable, Callable
-import multiprocessing
 
 THREADS = 8
 
@@ -23,11 +24,17 @@ def safety_check(path: str) -> bool:
 
 
 def chunk(iterable: Iterable, count: int) -> list[list]:
-    """ Split 'it' as evenly as possible into 'count' lists """
+    """ Split 'iterable' as evenly as possible into 'count' lists """
     full = list(iterable)
+
+    # If some parts of iterable are 'harder' than others,
+    # we hope this reduces the clustering somewhat
     random.shuffle(full)
+
     chunked = []
     size, rem = divmod(len(full), count)
+
+    # Not very pythonic, but AFAIK no python method to do this properly
     for num, idx in enumerate(range(0, len(full) // count * count, size)):
         offset = min(num, rem) + idx
         add = (1 if num < rem else 0) + size
@@ -41,17 +48,24 @@ def worker(boilerplate: tuple[Callable, list]) -> dict:
     task, arglist = boilerplate
     res = {}
 
-    # Who's going to use more than 9 threads? Not me!
-    number = int(multiprocessing.current_process().name[-1])
+    # If we don't wait, Python (sometimes) gets process number wrong
+    time.sleep(0.2)
+    number = int(mp.current_process().name.split('-')[-1])
 
     for step, args in enumerate(arglist):
         print(f'{step/len(arglist):.0%}'.rjust(number * 5))
         res[args] = task(*args)
-    print('done'.rjust(number * 5))
+
+    if arglist:
+        print('done!'.rjust(number * 5))
+    else:
+        print('empty'.rjust(number * 5))
+
     return res
 
 
 class NoSleep:
+    """ Context manager for macOS anti-sleep """
     def __init__(self):
         self.proc = None
 

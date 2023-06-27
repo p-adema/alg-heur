@@ -24,12 +24,12 @@ def softmax(weights: list[float]) -> list[float]:
     return [e / s_w for e in e_w]
 
 
-def soft_n(n: int) -> Adjuster:
+def soft_n(top_n: int) -> Adjuster:
     """ Performs a softmax on the top n choices """
 
     def _soft_n(weights: list[float]) -> list[float]:
         """ Actual adjuster function to perform softmax """
-        top = nlargest(n + 1, weights)
+        top = nlargest(top_n + 1, weights)
         low = min(top)
         high = max(top)
         if low == high or high > low + 200:
