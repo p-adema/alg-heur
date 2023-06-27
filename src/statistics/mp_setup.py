@@ -53,7 +53,7 @@ def worker(boilerplate: tuple[Callable, list]) -> dict:
     number = int(mp.current_process().name.split('-')[-1])
 
     for step, args in enumerate(arglist):
-        print(f'{step/len(arglist):.0%}'.rjust(number * 5))
+        print(f'{step / len(arglist):.0%}'.rjust(number * 5))
         res[args] = task(*args)
 
     if arglist:
@@ -66,6 +66,7 @@ def worker(boilerplate: tuple[Callable, list]) -> dict:
 
 class NoSleep:
     """ Context manager for macOS anti-sleep """
+
     def __init__(self):
         self.proc = None
 

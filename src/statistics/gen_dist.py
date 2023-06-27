@@ -36,6 +36,7 @@ def dist():
     with Pool(setup.THREADS) as pool:
         ret = pool.map(setup.worker, args)
 
+    print('Took', round(time.time() - start), 'seconds')
     res: np.ndarray = sum(d[w_size][0] for d in ret)
     best: tuple[float, Network] = max((d[w_size][1] for d in ret), key=lambda t: t[0])
 
@@ -59,7 +60,6 @@ def dist():
                 file.write(best[1].to_output())
         else:
             print(f'Best solution ({best[0]}) under record ({last.quality()})')
-    print('Took', round(time.time() - start), 'seconds')
     print('Saved to', dist_file)
 
 

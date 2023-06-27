@@ -58,8 +58,8 @@ cst_nf = rr(
     generic.Constructive,
     track_best=True,
     heur=heuristics.next_free(LINE_CAP),
-    adj=adjusters.soft_n(3),
-    tag='nf-s3'
+    adj=adjusters.soft_n(6),
+    tag='nf-s6'
 )
 
 # If you want to experiment yourself:
@@ -73,5 +73,5 @@ custom_runner: runner.Runner = rr(
     tag='gr-s4'
 )
 
-
+# Main export: most modules use this runner
 default_runner: runner.Runner = cst_nf
