@@ -14,6 +14,7 @@ DRAW = [
     'line graphs',
 ]
 TEXT_WHITE = {'color': 'white'}
+plt.rcParams['figure.dpi'] = 200
 
 
 def clean_dataframe(dataframe: pd.DataFrame):

@@ -8,6 +8,9 @@ Optional parameter list:
          = 'stations random' -> line_cap lines distributed randomly
          = 'stations degree' -> line_cap lines distributed on odd degree stations
 
+    trim: Whether to trim useless overtime rails at the end (default True)
+    tag: A string to add to the end of the algorithm name, to distinguish it
+
     Loop options, all default disabled:
     (note that enabling any results in a performance penalty)
         stop_backtracking: Whether backtracking should be prevented
