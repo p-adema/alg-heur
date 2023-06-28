@@ -73,7 +73,7 @@ def experiment():
     if not setup.safety_check(path50) or not setup.safety_check(path90):
         return
 
-    estimate = 0.0003125 * SAMPLE_SIZE * MAX_N * MOD_WIDTH * setup.THREADS
+    estimate = 0.0003125 * SAMPLE_SIZE * MAX_N * MOD_WIDTH * setup.PROCESSES
     print(
         f"Running experiment, estimated completion "
         f"{time.strftime('%H:%M', time.gmtime(time.time() + 60 * 60 * 2 + estimate))}")
@@ -86,24 +86,27 @@ def experiment():
 
         perc_50, perc_90 = _analyse_results(ret)
 
+        os.makedirs(os.path.dirname(path50), exist_ok=True)
         np.save(path50, perc_50)
         np.save(path90, perc_90)
 
         print('Done. Experiment took', round(time.time() - start), 'seconds')
 
 
-def _analyse_results(ret):
+def _analyse_results(ret: ChainMap[tuple[int, int], np.ndarray]):
     perc_50 = np.zeros((MAX_N, 2 * MOD_WIDTH + 1))
     perc_90 = np.zeros((MAX_N, 2 * MOD_WIDTH + 1))
-    with np.nditer([perc_50, perc_90], flags=['multi_index'], op_flags=['writeonly']) as ndit:
-        for p5_loc, p9_loc in ndit:
-            dist: np.ndarray = ret[(ndit.multi_index[0] + 1, ndit.multi_index[1] - MOD_WIDTH)]
+    with np.nditer([perc_50, perc_90], flags=['multi_index'], op_flags=['writeonly']) as nditer:
+        for p5_loc, p9_loc in nditer:
+            dist: np.ndarray = ret[(nditer.multi_index[0] + 1, nditer.multi_index[1] - MOD_WIDTH)]
             tot = dist.sum()
             p5_val, p9_val = None, None
             for score, count in zip(range(0, 10_000, BIN_SIZE), dist.cumsum()):
                 if p5_val is None and count >= tot * 0.5:
+                    # This is the first time we see a 50th percentile score
                     p5_val = score
                 if count >= tot * 0.9:
+                    # We see a 90th percentile score
                     p9_val = score
                     break
             p5_loc[...] = p5_val
@@ -116,8 +119,8 @@ def _run_experiment():
                for soft_level in range(1, MAX_N + 1)
                for infra_mod in range(-MOD_WIDTH, MOD_WIDTH + 1)]
     args = [(_task, ch) for ch in
-            (setup.chunk(targets, setup.THREADS))]
-    with Pool(setup.THREADS) as pool:
+            (setup.chunk(targets, setup.PROCESSES))]
+    with Pool(setup.PROCESSES) as pool:
         ret = ChainMap(*pool.map(setup.worker, args))
     return ret
 

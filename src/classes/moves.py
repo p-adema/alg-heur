@@ -24,7 +24,7 @@ class ExtensionMove(NamedTuple):
 
     def rebind(self, net: Network) -> ExtensionMove:
         """ Rebind this extension to the corresponding line in 'net' """
-        return self._replace(line=net.lines[self.line.index])
+        return self._replace(line=net.lines[self.line.location])
 
 
 class RetractionMove(NamedTuple):
@@ -38,7 +38,7 @@ class RetractionMove(NamedTuple):
 
     def rebind(self, net: Network) -> RetractionMove:
         """ Rebind this retraction to the corresponding line in 'net' """
-        return self._replace(line=net.lines[self.line.index])
+        return self._replace(line=net.lines[self.line.location])
 
     def evident(self) -> bool:
         """ Checks whether this retraction is a retraction over an overlap """
@@ -51,14 +51,14 @@ class RetractionMove(NamedTuple):
 
 class RemovalMove(NamedTuple):
     """ Represents a removal of a train line """
-    index: int
+    location: int
     network: Network
 
     def commit(self) -> bool:
         """ Confirm this removal, removing a line from the network """
-        del self.network.lines[self.index]
-        for line in self.network.lines[self.index:]:
-            line.index -= 1
+        del self.network.lines[self.location]
+        for line in self.network.lines[self.location:]:
+            line.location -= 1
         return True
 
     def rebind(self, net: Network):

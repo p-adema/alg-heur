@@ -16,19 +16,20 @@ if TYPE_CHECKING:
 class TrainLine:
     """ Class representing a train line """
 
-    def __init__(self, root: Station, network: Network, dist_cap: int, index: int):
+    def __init__(self, root: Station, network: Network, dist_cap: int, location: int):
         """
         Create a new TrainLine
         :param root: The origin station of the line
         :param network: The network the line belongs to
         :param dist_cap: The maximum duration of the line
+        :param location: The index of the line in the network
         """
         self.stations: deque[Station] = deque([root])
         self.rails = network.rails
-        self.network = network
+        self.network: Network = network
         self.duration = 0
         self.dist_cap = dist_cap
-        self.index = index
+        self.location: int = location
 
     def extend(self, origin: Station, destination: Station, is_new: bool | None = None) -> bool:
         """
@@ -144,7 +145,7 @@ class TrainLine:
 
     def copy(self, net: Network) -> TrainLine:
         """ Create a copy of this train line, onto the given network """
-        new = TrainLine(self.stations[0], net, self.dist_cap, self.index)
+        new = TrainLine(self.stations[0], net, self.dist_cap, self.location)
         new.stations = copy(self.stations)
         new.duration = self.duration
         return new
@@ -192,7 +193,7 @@ class Network:
 
     def removals(self) -> Iterator[RemovalMove]:
         """ Get an iterator of all possible line removals """
-        return (RemovalMove(line.index, self)
+        return (RemovalMove(line.location, self)
                 for line in self.lines if len(line.stations) == 1)
 
     def additions(self) -> Iterator[AdditionMove]:
@@ -327,7 +328,7 @@ class Network:
 
 class NetworkState(NamedTuple):
     """ A class compactly representing a single state of a network """
-    lines: tuple[tuple[Station, ...]]
+    lines: tuple[tuple[Station, ...], ...]
     infra: Rails
     score: float
 

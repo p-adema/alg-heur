@@ -31,12 +31,13 @@ def adjust_dataframe(dataframe: pd.DataFrame):
     return dataframe
 
 
-def simple_heatmap(arr_50):
-    fig, ax = plt.subplots()
-    ax.tick_params(colors='white')
+def simple_heatmap(dataframe: np.ndarray):
+    """ Draw a simple heatmap for one of the dataframes """
+    fig, axes = plt.subplots()
+    axes.tick_params(colors='white')
     fig.set_facecolor('#222222')
-    ax.set_facecolor('#222222')
-    sns.heatmap(clean_dataframe(pd.DataFrame(arr_50)), ax=ax)
+    axes.set_facecolor('#222222')
+    sns.heatmap(clean_dataframe(pd.DataFrame(dataframe)), ax=axes)
     plt.title('Raw data for 50th percentile', fontdict=TEXT_WHITE)
     plt.xlabel('Links added or removed', fontdict=TEXT_WHITE)
     plt.ylabel('Top N moves for softmax', fontdict=TEXT_WHITE)
@@ -49,7 +50,7 @@ def draw_heatmap(dfs: list[pd.DataFrame], peaked: bool = True):
     fig, axs = plt.subplots(2, 1, height_ratios=[3, 4])
     fig.set_size_inches(7, 8)
     fig.set_facecolor('#222222')
-    plt.suptitle('Percentile scores relative to highest in column (link count)', fontdict=TEXT_WHITE)
+    plt.suptitle('Percentage relative to highest score', fontdict=TEXT_WHITE)
     for axes, dataframe, do_colour_bar in zip(axs, dfs, [False, True]):
         if peaked:
             sns.heatmap(dataframe, mask=dataframe < 100, cmap='viridis', ax=axes, vmin=90,
@@ -77,28 +78,29 @@ def draw_heatmap(dfs: list[pd.DataFrame], peaked: bool = True):
     plt.show()
 
 
-def draw_lines(df: pd.DataFrame, name: str):
-    fig, ax = plt.subplots()
-    ax.spines['top'].set_visible(False)
-    ax.spines['right'].set_visible(False)
-    ax.spines['left'].set_color('white')
-    ax.spines['bottom'].set_color('white')
-    ax.set_ylim(90, 100.5)
-    ax.tick_params(colors='white')
+def draw_lines(dataframe: pd.DataFrame, name: str):
+    """ Draw four lines from the dataframe, with the given title """
+    fig, axes = plt.subplots()
+    axes.spines['top'].set_visible(False)
+    axes.spines['right'].set_visible(False)
+    axes.spines['left'].set_color('white')
+    axes.spines['bottom'].set_color('white')
+    axes.set_ylim(90, 100.5)
+    axes.tick_params(colors='white')
     fig.set_facecolor('#222222')
-    ax.set_facecolor('#222222')
+    axes.set_facecolor('#222222')
     for conn, colour in zip(range(-30, 31, 20),
                             ['#b58b4c', '#e3df2e', '#50e360', '#37fffc']):
-        data = df[conn]
+        data = dataframe[conn]
         sns.lineplot(data, color=colour, label=conn, zorder=-1)
         best_idx = data.where(data == data.max()).idxmin()
-        ax.scatter(best_idx, data.loc[best_idx] + conn / 150, c=colour)
+        axes.scatter(best_idx, data.loc[best_idx] + conn / 150, c=colour)
     plt.setp(
-        ax.legend(labelcolor='white', facecolor='#222222',
-                  loc='lower right', title='Rails added').get_title(), color='white')
-    ax.set_xlabel('Top N choices included in softmax', fontdict=TEXT_WHITE)
-    ax.set_ylabel('Score, relative to highest point', fontdict=TEXT_WHITE)
-    ax.yaxis.set_major_formatter(matplotlib.ticker.PercentFormatter(xmax=100, decimals=0))
+        axes.legend(labelcolor='white', facecolor='#222222',
+                    loc='lower right', title='Rails added').get_title(), color='white')
+    axes.set_xlabel('Top N choices included in softmax', fontdict=TEXT_WHITE)
+    axes.set_ylabel('Score, relative to highest point', fontdict=TEXT_WHITE)
+    axes.yaxis.set_major_formatter(matplotlib.ticker.PercentFormatter(xmax=100, decimals=0))
     plt.title(name, fontdict=TEXT_WHITE, pad=20)
     plt.show()
 

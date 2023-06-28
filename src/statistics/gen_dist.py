@@ -29,11 +29,11 @@ def _dist(size: int):
 
 def dist():
     """ Gather distribution data for the default runner """
-    print(f'Recording {SIZE} runs on {setup.THREADS} threads for {runner.name}...')
+    print(f'Recording {SIZE} runs on {setup.PROCESSES} threads for {runner.name}...')
     start = time.time()
-    w_size = (int(SIZE // setup.THREADS),)
-    args = [(_dist, (w_size,)) for _ in range(setup.THREADS)]
-    with Pool(setup.THREADS) as pool:
+    w_size = (int(SIZE // setup.PROCESSES),)
+    args = [(_dist, (w_size,)) for _ in range(setup.PROCESSES)]
+    with Pool(setup.PROCESSES) as pool:
         ret = pool.map(setup.worker, args)
 
     print('Took', round(time.time() - start), 'seconds')
@@ -42,6 +42,7 @@ def dist():
 
     dist_file = f'results/statistics/dist/{"nl" if INFRA_LARGE else "nh"}_{runner.name}.npy'
     if not os.path.isfile(dist_file):
+        os.makedirs(os.path.dirname(dist_file), exist_ok=True)
         np.save(dist_file, res)
     else:
         last = np.load(dist_file)
@@ -49,6 +50,7 @@ def dist():
 
     record_file = f'results/solutions/{"nl" if INFRA_LARGE else "nh"}.csv'
     if not os.path.isfile(record_file):
+        os.makedirs(os.path.dirname(record_file), exist_ok=True)
         with open(record_file, 'w', encoding='utf-8') as file:
             file.write(best[1].to_output())
     else:

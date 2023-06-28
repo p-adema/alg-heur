@@ -107,7 +107,7 @@ class Perfectionist(Greedy):
         while True:
             mov = super().next_move()
 
-            if mov.new:
+            if mov is not None and mov.new:
                 return mov
             if len(self.active.lines) < self.line_cap:
                 add = self.select_root()

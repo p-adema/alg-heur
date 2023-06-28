@@ -51,7 +51,7 @@ def full_lookahead(line_cap: int = 20, depth: int = 2,
         """ Entrypoint for the heuristic, initialises values """
         net = origin.copy()
         mov.rebind(net).commit()
-        highest = 0
+        highest = 0.
         for state_neighbor in net.state_neighbours(
                 line_cap, constructive=constructive, stationary=False):
             highest = max(_full_lookahead(state_neighbor, depth - 1), highest)

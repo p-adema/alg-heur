@@ -10,7 +10,7 @@ from os.path import isfile
 from subprocess import Popen
 from typing import Iterable, Callable
 
-THREADS = 8
+PROCESSES = 8
 
 
 def safety_check(path: str) -> bool:

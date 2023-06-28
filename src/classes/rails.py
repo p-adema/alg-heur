@@ -62,7 +62,7 @@ class Rails:
                 self.names[name] = station
 
         self.connections = {station: {} for station in stations}
-        sum_speed = 0
+        sum_speed = 0.
         with open(connections_filename, 'r', encoding='utf-8') as connections_file:
             connections_file.readline()
             for station_a, station_b, duration in \

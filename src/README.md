@@ -7,4 +7,4 @@ This folder contains all the source code for the project
 * `graphs` has functions to visualise algorithms and their solutions
 * `statistics` has functions to generate data for visualisations
 * `defaults.py` has some default run configurations for algorithms
-    * Use `defaults.default_runner.run()` for an easy result
+    * Use `defaults.default_runner.run()` for a simple result
