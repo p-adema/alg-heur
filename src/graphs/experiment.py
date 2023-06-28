@@ -13,6 +13,7 @@ DRAW = [
     'peaked heatmap',
     'line graphs',
 ]
+
 TEXT_WHITE = {'color': 'white'}
 plt.rcParams['figure.dpi'] = 200
 
@@ -108,8 +109,12 @@ def draw_lines(dataframe: pd.DataFrame, name: str):
 
 def visualise(draw: list[str]):
     """ Draw all visualisations listed in 'draw' """
-    arr_50 = np.load('results/statistics/exp/perc_50.npy')
-    arr_90 = np.load('results/statistics/exp/perc_90.npy')
+    try:
+        arr_50 = np.load('results/statistics/exp/perc_50.npy')
+        arr_90 = np.load('results/statistics/exp/perc_90.npy')
+    except FileNotFoundError:
+        print('Warning: Experiment data not found')
+        return
 
     if 'raw heatmap' in draw:
         simple_heatmap(arr_50)

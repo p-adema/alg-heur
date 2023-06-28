@@ -1,4 +1,4 @@
-""" Generic constructive and iterative algorithms """
+""" Generic constructive algorithm for customisation """
 
 from __future__ import annotations
 
@@ -19,7 +19,6 @@ class Constructive(Algorithm):
         super().__init__(base, **options)
         self.infra = base.rails
         self.line_cap = options.get('line_cap', 7)
-        self.optimal = options.get('optimal', False)
         self.heur = heur
         self.adj = adj
 

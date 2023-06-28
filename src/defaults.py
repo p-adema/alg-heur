@@ -48,9 +48,9 @@ cst_bb = rr(
     generic.Constructive,
     track_best=True,
     heur=heuristics.branch_bound(LINE_CAP, 3),
-    adj=adjusters.soft_n(3),
+    adj=adjusters.soft_n(6),
     start='stations degree',
-    tag='bb-s3'
+    tag='bb-s6'
 )
 
 # Use this.

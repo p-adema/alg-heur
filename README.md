@@ -34,12 +34,13 @@ To produce a map for a single run of the default runner, simply execute
 If you have too much free time, you can replicate the graphs I presented:
 
 To replicate the distributions seen in the presentation, edit the `default_runner` variable
-in [the defaults file](src/defaults.py)
+in [the defaults file](src/defaults.py) (set it equal to one of the other Runner variables, 
+for example `std_gr` for the standard Greedy implementation)
 to the appropriate run configuration, generate distributional data with
 
 `python -m src.statistics.gen_dist`,
 
-enable the desired distributions by uncommenting them in [the graph file](src/graphs/distributions.py) and then show the
+enable the desired distributions by uncommenting them in the head of [the graph file](src/graphs/distributions.py) and then show the
 graph with
 
 `python -m src.graphs.distributions`
